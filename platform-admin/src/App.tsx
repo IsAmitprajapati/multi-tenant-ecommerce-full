@@ -1,13 +1,12 @@
 import './App.css'
 import { Button } from './components/ui/button'
+import Routers from './routes'
 
 function App() {
   return (
-   <div className='font-bold text-green-600 text-2xl'>
-      Platform Admin
-
-      <Button>Click Me</Button>
-   </div>
+   <main>
+    <Routers/>
+   </main>
   )
 }
 
