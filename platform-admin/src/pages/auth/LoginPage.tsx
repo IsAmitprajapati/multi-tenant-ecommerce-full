@@ -1,30 +1,51 @@
+import type { loginResponse } from "@/api/auth";
 import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { useAppDispatch, useAppSelector } from "@/hooks/use-store";
+import { getAxiosErrorMessage } from "@/lib/api.error";
+import { fetchLogin } from "@/store/auth/authSlice";
 import { ShieldCheckIcon } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 export default function LoginPage() {
     const dispatch = useAppDispatch()
+    const navigate = useNavigate()
 
     const [email, setEmail] = useState<string>("")
     const [password, setPassword] = useState<string>("")
 
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
-    const [error, setError] = useState<string | null>(null)
+    const [error, setError] = useState<string | null>("")
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async(e) => {
         e.preventDefault()
-
+        
         setIsSubmitting(true)
-        setTimeout(() => {
+        setError(null)
+        try {
+            const result:any= await dispatch(fetchLogin({
+                email : email,
+                password : password
+            }))
+
+            const reponse = result?.payload as loginResponse
+            if(
+                reponse.accessToken && 
+                reponse.refreshToken &&
+                reponse.userType
+            ){
+                navigate('/dashboard')
+            }else{
+                setError(result?.payload)
+            }  
+        } catch (error) {
+            setError(getAxiosErrorMessage(error,"Failed to login"))
+        }finally{
             setIsSubmitting(false)
-            setPassword("")
-            setEmail("")
-        }, 2000);
+        }
     }
 
 
@@ -84,7 +105,7 @@ export default function LoginPage() {
 
                     {
                         error && (
-                            <p className="mt-3 text-sm text-destructive">{error}</p>
+                            <p className="my-0 text-sm text-destructive">{error}</p>
                         )
                     }
 

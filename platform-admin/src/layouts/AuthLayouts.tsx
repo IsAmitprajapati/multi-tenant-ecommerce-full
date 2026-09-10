@@ -1,7 +1,18 @@
-import { Outlet } from "react-router";
+import { Outlet, useNavigate } from "react-router";
 import PlatfromLogo from '@/assets/platform-logo.png'
+import { useAppSelector } from "@/hooks/use-store";
+import { useEffect } from "react";
 
 export default function AuthLayouts(){
+    const user = useAppSelector(state => state.auth)
+    const navigate = useNavigate()
+
+    useEffect(()=>{
+        if(user?.accessToken){
+            navigate('/dashboard')
+        }
+    },[user])
+
     return(
         <div className="flex min-h-svh">
             {/***Left */}
