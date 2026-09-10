@@ -35,7 +35,8 @@ model User {
   status                UserStatus @default(ACTIVE)
   twoFactorEnabled      Boolean @default(false) @map("two_factor-enabled")
   twoFactorSecret       String?   @map("two_factor_secret")
-  
+  profileImage          String? @map("profile_image")
+
   createdAt             DateTime @default(now()) @map("created_at")
   updatedAt             DateTime @updatedAt @map("updated_at")
 
@@ -63,12 +64,12 @@ model UserSession {
   userId          String  @map("user_id")
   user            User    @relation(fields: [userId], references: [id],onDelete: Cascade)
   deviceLabel     String? @map("device_label")
-  ipAddress       String  @map("ip_address")
+  ipAddress       String?  @map("ip_address")
   refreshTokenHash String @map("refresh_token_hash")
   createdAt         DateTime  @default(now()) @map("created_at")
   lastActiveAt      DateTime  @default(now()) @map("last_active_at")
   expiresAt         DateTime  @map("expires_at")
-  revokedAt         DateTime  @map("revoked_at")
+  revokedAt         DateTime?  @map("revoked_at")
 
   @@map("user_sessions")
 }
