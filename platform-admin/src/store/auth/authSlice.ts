@@ -1,12 +1,12 @@
-import { authApi, type loginPayload, type loginResponse } from '@/api/auth'
+import { authApi, type IVerify2FALoginOtp, type IVerifyEnablDisableTwoFactor, type loginPayload, type loginResponse, } from '@/api/auth'
 import { getAxiosErrorMessage } from '@/lib/api.error'
 import { storage } from '@/lib/storage'
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
 
 export interface IRole {
-    id : string
-    name : string;
+    id: string
+    name: string;
     createdAt?: Date;
     updatedAt?: Date;
 }
@@ -21,8 +21,8 @@ export interface IUser {
     avatarName: string;
     twoFactorEnabled?: boolean;
     twoFactorSecret?: boolean;
-    password? : string;
-    role? : IRole;
+    password?: string;
+    role?: IRole;
     userType?: string;
     createdAt?: Date;
     updatedAt?: Date;
@@ -38,7 +38,10 @@ interface AuthState {
     userType: USER_TYPE,
     status: AsyncStatus,
     error: string | null,
-    isLoading?: boolean
+    isLoading?: boolean,
+
+    twoFactorToken: string | null,
+    requiredsTwoFactor: boolean
 }
 
 const initialState: AuthState = {
@@ -48,7 +51,9 @@ const initialState: AuthState = {
     userType: 'PLATFORM_ADMIN',
     status: 'idle',
     error: null,
-    isLoading: false
+    isLoading: false,
+    twoFactorToken: null,
+    requiredsTwoFactor: false,
 }
 
 export const fetchLogin = createAsyncThunk('auth/login',
@@ -110,6 +115,43 @@ export const changePassword = createAsyncThunk('auth/changePassword',
     }
 )
 
+export const twoFactorGenerateOtp = createAsyncThunk('auth/twoFactorGenerateOtp',
+    async (_, { rejectWithValue }) => {
+        try {
+            const data = await authApi.twoFactorGenerateOtp();
+            return data
+        } catch (error) {
+            return rejectWithValue(getAxiosErrorMessage(error, "Failed to generate otp"))
+        }
+    }
+)
+
+export const verifyEnablDisableTwoFactor = createAsyncThunk('auth/verify-enableDisableTwoFactor',
+    async (payload: IVerifyEnablDisableTwoFactor, { rejectWithValue }) => {
+        try {
+            const data = await authApi.verifyEnablDisableTwoFactor(payload);
+            return data
+        } catch (error) {
+            return rejectWithValue(getAxiosErrorMessage(error, "Failed to generate otp"))
+        }
+    }
+)
+
+
+
+export const Verify2FALoginOtp = createAsyncThunk('auth/Verify2FALoginOtp',
+    async (payload: IVerify2FALoginOtp, { rejectWithValue }) => {
+        try {
+            const tokens = await authApi.Verify2FALoginOtp(payload);
+            storage.setToken(tokens.accessToken, tokens.refreshToken)
+            return tokens
+        } catch (error) {
+            return rejectWithValue(getAxiosErrorMessage(error, "Could not sign in"))
+        }
+    }
+)
+
+
 
 export const authSlice = createSlice({
     name: 'auth',
@@ -127,12 +169,15 @@ export const authSlice = createSlice({
             .addCase(fetchLogin.fulfilled, (state, action) => {
                 state.status = 'succeeded';
                 state.accessToken = action?.payload?.accessToken;
-                state.refreshToken = action?.payload.refreshToken;
+                state.refreshToken = action?.payload?.refreshToken;
                 state.userType = action?.payload?.userType
+
+                state.requiredsTwoFactor = action?.payload?.requiredsTwoFactor
+                state.twoFactorToken = action?.payload?.twoFactorToken
             })
             .addCase(fetchLogin.rejected, (state, action) => {
                 state.status = 'failed'
-                state.error = action.payload as string;
+                state.error = action?.payload as string;
                 state.accessToken = null;
                 state.refreshToken = null;
                 state.userType = 'PLATFORM_ADMIN'
@@ -200,6 +245,52 @@ export const authSlice = createSlice({
             .addCase(updateCurrentUser.rejected, (state) => {
                 // state.status = 'failed'
                 state.isLoading = false
+            })
+
+
+            /***Enable and Disable Two Factor Update */
+            .addCase(verifyEnablDisableTwoFactor.pending, (state) => {
+                // state.status = 'loading'
+                // state.user = null
+                state.isLoading = true
+            })
+            .addCase(verifyEnablDisableTwoFactor.fulfilled, (state, action) => {
+                // state.status = 'succeeded's
+                state.isLoading = false
+                const user = (action?.payload as any)?.data
+                state.user = {
+                    ...state.user,
+                    twoFactorEnabled: user?.twoFactorEnabled
+                }
+
+            })
+            .addCase(verifyEnablDisableTwoFactor.rejected, (state) => {
+                // state.status = 'failed'
+                state.isLoading = false
+            })
+
+
+
+            /*****2FA OTP Login Verify */
+            .addCase(Verify2FALoginOtp.pending, (state) => {
+                state.status = 'loading'
+                state.error = null;
+            })
+            .addCase(Verify2FALoginOtp.fulfilled, (state, action) => {
+                state.status = 'succeeded';
+                state.accessToken = action?.payload?.accessToken;
+                state.refreshToken = action?.payload?.refreshToken;
+                state.userType = action?.payload?.userType
+
+                state.requiredsTwoFactor = action?.payload?.requiredsTwoFactor
+                state.twoFactorToken = action?.payload?.twoFactorToken
+            })
+            .addCase(Verify2FALoginOtp.rejected, (state, action) => {
+                state.status = 'failed'
+                state.error = action?.payload as string;
+                state.accessToken = null;
+                state.refreshToken = null;
+                state.userType = 'PLATFORM_ADMIN'
             })
 
     },

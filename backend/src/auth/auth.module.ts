@@ -5,14 +5,16 @@ import { UsersModule } from '../users/users.module.js';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from './jwt.strategy.js';
+import { EmailModule } from '../email/email.module.js';
 
 @Module({
-  imports : [
-      UsersModule,
-      JwtModule.register({})
+  imports: [
+    UsersModule,
+    JwtModule.register({}),
+    EmailModule
   ],
   controllers: [AuthController],
-  providers: [AuthService,JwtStrategy],
-  exports : [AuthService]
+  providers: [AuthService, JwtStrategy],
+  exports: [AuthService]
 })
-export class AuthModule {}
+export class AuthModule { }

@@ -113,7 +113,13 @@ const ProfileDetailsPage = () => {
                 <div>Extra code required at login, in addition to your password</div>
               </div>
               <div className='flex items-center gap-4'>
-                <Badge>Enable</Badge>
+                <Badge
+                  variant={user?.twoFactorEnabled ? "default" : 'destructive'}
+                >
+                  {
+                    user?.twoFactorEnabled ? "Enable" : "Disable"
+                  }
+                </Badge>
 
                 <TwoFactorAuthentication
                   user={user}

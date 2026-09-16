@@ -11,3 +11,7 @@ export interface RefreshTokenPayload {
     userId : string;
     sessionId : string
 }
+
+export interface ItwoFactorTokenPayload {
+      userId: string,
+}

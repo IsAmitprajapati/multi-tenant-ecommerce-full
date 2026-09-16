@@ -38,7 +38,16 @@ export default function LoginPage() {
                 reponse.userType
             ){
                 navigate('/dashboard')
-            }else{
+            }
+            else if(reponse.requiredsTwoFactor && reponse.twoFactorToken){
+                navigate('/auth/2fa',{
+                    state : {
+                        email : email,
+                        twoFactorToken : reponse.twoFactorToken
+                    }
+                })
+            }
+            else{
                 setError(result?.payload)
             }  
         } catch (error) {

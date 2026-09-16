@@ -5,6 +5,7 @@ import ProfileDetailsPage from "@/pages/account/ProfileDetailsPage";
 import { ForgotPassowordPage } from "@/pages/auth/ForgotPassoword";
 import LoginPage from "@/pages/auth/LoginPage";
 import ResetPassword from "@/pages/auth/ResetPassword";
+import Verify2AaOTP from "@/pages/auth/Verify2FaOtp";
 import VerifyForgotOtpPage from "@/pages/auth/VerifyForgotOtp";
 import CommisionPayoutPages from "@/pages/dashboard/commision-payouts/CommisionPayoutPages";
 import DashboardPage from "@/pages/dashboard/DashboardPage";
@@ -21,6 +22,7 @@ export default function Routers() {
                 <Route path="forgot-password" element={<ForgotPassowordPage />} />
                 <Route path="forgot-password/otp" element={<VerifyForgotOtpPage />} />
                 <Route path="reset-password" element={<ResetPassword />} />
+                <Route path="2fa" element={<Verify2AaOTP />} />
             </Route>
 
             {/***Dashboard*/}
@@ -30,7 +32,7 @@ export default function Routers() {
                     <Route path="sellers" element={<SellersPage />} />
                     <Route path="commision-payouts" element={<CommisionPayoutPages />} />
                     <Route path="my-account" element={<ProfileDetailsPage />} />
-            
+
                 </Route>
             </Route>
 
