@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UsersService {
@@ -27,8 +28,8 @@ export class UsersService {
     return data
   }
 
-  update(id: string, data: UpdateUserDto) {
-    const user = this.prisma.user.update({
+  async update(id: string, data: UpdateUserDto) {
+    const user = await this.prisma.user.update({
       where: {
         id: id
       },
@@ -49,6 +50,32 @@ export class UsersService {
       message: "Update successfully",
       data: user
     }
+  }
+
+  async changePassword(id: string, data: UpdateUserDto) {
+    if (!data.password) {
+      throw new BadRequestException("Password is required")
+    }
+    const passswordHash = await bcrypt.hash(data.password!, 10)
+
+    try {
+      const user = await this.prisma.user.update({
+        where: {
+          id: id
+        },
+        data: {
+          passwordHash: passswordHash
+        }
+      })
+
+      return {
+        success: true,
+        message: "Password Change successfully"
+      }
+    }catch(error){
+      throw new BadRequestException("Failed to change password")
+    }
+    
   }
 
 

@@ -3,26 +3,25 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useAppDispatch } from '@/hooks/use-store'
+import { useAppDispatch, useAppSelector } from '@/hooks/use-store'
 import { updateCurrentUser, type IUser } from '@/store/auth/authSlice'
 import React, { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 const ProfileUpdate = ({ user }: { user: IUser }) => {
     const dispatch = useAppDispatch()
-    const [data, setData] = useState<IUser>({
-        id: user?.id,
+    const [data, setData] = useState<Partial<IUser>>({
         email: user?.email,
         fullName: user?.fullName,
         phone: user?.phone,
         profile_image: user?.profile_image,
         avatarName: user?.avatarName
     })
-    const [isSubmitting,setIsSubmitting] = useState<boolean>(false)
+    const isLoading = useAppSelector(state => state?.auth?.isLoading)
+    const [isOpen, setIsOpen] = useState<boolean>(false)
 
     useEffect(() => {
         setData({
-            id: user?.id,
             email: user?.email,
             fullName: user?.fullName,
             phone: user?.phone,
@@ -41,19 +40,21 @@ const ProfileUpdate = ({ user }: { user: IUser }) => {
         })
     }
 
-    const handleSubmit = async(e:any) =>{
+    const handleSubmit = async (e: any) => {
         e.preventDefault()
-        const response:any = await dispatch(updateCurrentUser(data)) 
+        const response: any = await dispatch(updateCurrentUser(data))
 
-        if(response?.payload?.success){
+        console.log("response", response)
+        if (response?.payload?.success) {
             toast.success(response?.payload?.message)
-        }else{
+            setIsOpen(false)
+        } else {
             toast.error(response?.payload?.message)
         }
     }
 
     return (
-        <Dialog>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
                 <Button variant='outline' className='cursor-pointer'>
                     Edit Profile
@@ -65,7 +66,7 @@ const ProfileUpdate = ({ user }: { user: IUser }) => {
                     classNameTitle='font-semibold'
                     description='Update your profile details'
                 />
-                <form onSubmit={handleSubmit} className='my-3 grid gap-4 grid-cols-2'>
+                <form onSubmit={handleSubmit} className='my-3 grid gap-4 grid-cols-2 mt-4'>
                     <div className='grid gap-2'>
                         <Label htmlFor='fullName'>Full Name</Label>
                         <Input
@@ -74,7 +75,7 @@ const ProfileUpdate = ({ user }: { user: IUser }) => {
                             className='h-10'
                             value={data?.fullName}
                             name='fullName'
-                            disabled={isSubmitting}
+                            disabled={isLoading}
                             onChange={handleChange}
                             required
                         />
@@ -88,13 +89,13 @@ const ProfileUpdate = ({ user }: { user: IUser }) => {
                             className='h-10'
                             value={data?.email}
                             name='email'
-                            disabled={isSubmitting}
+                            disabled={isLoading}
                             onChange={handleChange}
                             required
                         />
                     </div>
 
-                     <div className='grid gap-2'>
+                    <div className='grid gap-2'>
                         <Label htmlFor='Phone'>Phone</Label>
                         <Input
                             id='Phone'
@@ -102,14 +103,18 @@ const ProfileUpdate = ({ user }: { user: IUser }) => {
                             className='h-10'
                             value={data?.phone}
                             name='phone'
-                            disabled={isSubmitting}
+                            disabled={isLoading}
                             onChange={handleChange}
                             required
                         />
                     </div>
 
                     <div className='col-span-2 mt-4'>
-                        <Button className='mx-auto block h-10'>Update Profile</Button>
+                        <Button className='mx-auto block h-10'>
+                            {
+                                isLoading ? "Updating..." : "Update Profile"
+                            }
+                        </Button>
                     </div>
                 </form>
             </DialogContent>

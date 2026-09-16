@@ -4,6 +4,13 @@ import { storage } from '@/lib/storage'
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
 
+export interface IRole {
+    id : string
+    name : string;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
 export interface IUser {
     id: string
     email: string
@@ -14,6 +21,8 @@ export interface IUser {
     avatarName: string;
     twoFactorEnabled?: boolean;
     twoFactorSecret?: boolean;
+    password? : string;
+    role? : IRole;
     userType?: string;
     createdAt?: Date;
     updatedAt?: Date;
@@ -28,7 +37,8 @@ interface AuthState {
     refreshToken: string | null,
     userType: USER_TYPE,
     status: AsyncStatus,
-    error: string | null
+    error: string | null,
+    isLoading?: boolean
 }
 
 const initialState: AuthState = {
@@ -37,7 +47,8 @@ const initialState: AuthState = {
     refreshToken: storage.getRefreshToken(),
     userType: 'PLATFORM_ADMIN',
     status: 'idle',
-    error: null
+    error: null,
+    isLoading: false
 }
 
 export const fetchLogin = createAsyncThunk('auth/login',
@@ -88,6 +99,17 @@ export const updateCurrentUser = createAsyncThunk('auth/updateCurrentUser',
     }
 )
 
+export const changePassword = createAsyncThunk('auth/changePassword',
+    async (payload: Partial<IUser>, { rejectWithValue }) => {
+        try {
+            const data = await authApi.changePassword(payload);
+            return data
+        } catch (error) {
+            return rejectWithValue(getAxiosErrorMessage(error, "Failed to update"))
+        }
+    }
+)
+
 
 export const authSlice = createSlice({
     name: 'auth',
@@ -126,7 +148,7 @@ export const authSlice = createSlice({
 
                 state.user = {
                     ...action.payload,
-                    avatarName: `${action.payload?.fullName?.split(' ')?.[0]?.[0] ?? ""}${action.payload?.fullName?.split(' ')?.[1]?.[0]}`
+                    avatarName: `${action.payload?.fullName?.split(' ')?.[0]?.[0] ?? ""}${action.payload?.fullName?.split(' ')?.[1]?.[0] ?? ""}`
                 }
 
 
@@ -158,21 +180,26 @@ export const authSlice = createSlice({
 
             /*****updateCurrentUser */
             .addCase(updateCurrentUser.pending, (state) => {
-                state.status = 'loading'
-                state.user = null
+                // state.status = 'loading'
+                // state.user = null
+                state.isLoading = true
             })
             .addCase(updateCurrentUser.fulfilled, (state, action) => {
-                state.status = 'succeeded'
+                // state.status = 'succeeded's
+                state.isLoading = false
+                const user = (action?.payload as any)?.data
                 state.user = {
                     ...state.user,
-                    fullName: action?.payload?.fullName,
-                    email: action?.payload?.email,
-                    phone: action?.payload?.phone,
-                    avatarName: `${action.payload?.fullName?.split(' ')?.[0]?.[0] ?? ""}${action.payload?.fullName?.split(' ')?.[1]?.[0]}`
+                    fullName: user?.fullName,
+                    email: user?.email,
+                    phone: user?.phone,
+                    avatarName: `${user?.fullName?.split(' ')?.[0]?.[0] ?? ""}${user?.fullName?.split(' ')?.[1]?.[0] ?? ""}`
                 }
+
             })
             .addCase(updateCurrentUser.rejected, (state) => {
-                state.status = 'failed'
+                // state.status = 'failed'
+                state.isLoading = false
             })
 
     },

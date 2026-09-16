@@ -8,12 +8,20 @@ import { type JwtAccessPayload } from '../auth/types/jwt-payload.type.js';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
   @Put('me')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
-  async Update(@CurrentUser() user : JwtAccessPayload,@Body() data : UpdateUserDto){
-    return this.usersService.update(user?.userId,data)
+  async Update(@CurrentUser() user: JwtAccessPayload, @Body() data: UpdateUserDto) {
+    return this.usersService.update(user?.userId, data)
   }
+
+  @Put('change-password')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async ChangePassword(@CurrentUser() user: JwtAccessPayload, @Body() data: UpdateUserDto) {
+    return this.usersService.changePassword(user?.userId, data)
+  }
+  
 }
