@@ -10,9 +10,13 @@ import React from 'react'
 import ProfileUpdate from './_component/ProfileUpdate'
 import ChangePassword from './_component/ChangePassword'
 import TwoFactorAuthentication from './_component/TwoFactorAuthentication'
+import SessionsCard from './_component/SessionsCard'
+import moment from 'moment'
 
 const ProfileDetailsPage = () => {
   const user = useAppSelector(state => state?.auth?.user)
+
+
   return (
     <div>
       <TitleHeading
@@ -99,7 +103,7 @@ const ProfileDetailsPage = () => {
             <div className=' flex items-center justify-between gap-4 lg:gap-6'>
               <div className='flex flex-col'>
                 <Label>Password</Label>
-                <div>Last changed 2 months ago</div>
+                <div>{moment(user?.passwordUpdatedAt).startOf('seconds').fromNow()}</div>
               </div>
               <div>
                 <ChangePassword />
@@ -134,7 +138,9 @@ const ProfileDetailsPage = () => {
 
 
         {/****Session Details*/}
-
+        <div>
+            <SessionsCard/>
+        </div>
 
       </div>
 

@@ -13,6 +13,9 @@ import { EmailService } from '../email/email.service.js';
 
 export interface LoginContext {
   ipAddress?: string
+  browser?: string,
+  os?: string,
+  device?: string
 }
 
 @Injectable()
@@ -77,10 +80,13 @@ export class AuthService {
     const session = await this.prisma.userSession.create({
       data: {
         userId: user.id,
-        deviceLabel: 'Untitle',
+        deviceLabel: context?.device,
         ipAddress: context?.ipAddress,
         refreshTokenHash: '',
-        expiresAt: expiredAt
+        expiresAt: expiredAt,
+        os: context?.os,
+        browser: context?.browser,
+        device: context?.device
       }
     })
 
@@ -201,7 +207,8 @@ export class AuthService {
     })
 
     return this.issueTokenPair(user, {
-      ipAddress: context?.ipAddress
+      ...context,
+      ipAddress: context?.ipAddress,
     })
   }
 
@@ -364,7 +371,7 @@ export class AuthService {
   /***At the time of login Sending the otp */
   async twoFactorCreateOtpToken(userId: string) {
 
-    const twoFactorTokenPayload:ItwoFactorTokenPayload = {
+    const twoFactorTokenPayload: ItwoFactorTokenPayload = {
       userId: userId,
     }
     /****Create Token */
@@ -393,26 +400,26 @@ export class AuthService {
 
   /***Verify 2fa Otp at the time of login */
   async twoFactorVerifyLoginOtp(
-    twoFactorToken : string,
-    otp : string,
+    twoFactorToken: string,
+    otp: string,
     context: LoginContext = {}
-  ){
+  ) {
 
-    const decode:ItwoFactorTokenPayload = await this.jwtService.verifyAsync(twoFactorToken,{
-      secret : this.config.getOrThrow('JWT_2FA_SECRET')
+    const decode: ItwoFactorTokenPayload = await this.jwtService.verifyAsync(twoFactorToken, {
+      secret: this.config.getOrThrow('JWT_2FA_SECRET')
     })
 
-    if(!decode){
-        throw new BadRequestException("session is expired")
+    if (!decode) {
+      throw new BadRequestException("session is expired")
     }
 
     const user = await this.prisma.user.findUnique({
-      where : {
-        id : decode?.userId
+      where: {
+        id: decode?.userId
       }
     })
 
-    if(!user){
+    if (!user) {
       throw new BadRequestException("Something went wrong")
     }
 
@@ -465,6 +472,166 @@ export class AuthService {
 
   }
 
+  async listSessions(userId: string) {
+    const data = await this.prisma.userSession.findMany({
+      where: { userId, revokedAt: null },
+      orderBy: { lastActiveAt: 'desc' }
+    })
+
+    return data
+  }
+
+  async revokeOtherSessions(userId: string, currentSessionId: string): Promise<void> {
+    await this.prisma.userSession.updateMany({
+      where: {
+        userId: userId,
+        revokedAt: null,
+        NOT: {
+          id: currentSessionId
+        }
+      },
+      data: {
+        revokedAt: new Date()
+      }
+    })
+  }
 
 
+  /***Forgot Password */
+  async forgotPassword(email: string) {
+    if (!email) {
+      throw new BadRequestException('Email is required')
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: {
+        email: email
+      }
+    })
+
+    if (!user) {
+      throw new BadRequestException('Invalid email id')
+    }
+
+    /**Generate OTP */
+    const generateOtp = randomInt(100000, 1000000).toString()
+    const hashOtp = await bcrypt.hash(generateOtp, 10)
+
+    /**
+     * 5 Min valid
+     */
+    const expiredAt = new Date((Date.now() + 5) * 60 * 60)
+
+    const save = await this.prisma.passwordResetOtp.create({
+      data: {
+        userId: user.id,
+        codeHash: hashOtp,
+        expiresAt: expiredAt
+      }
+    })
+
+    /***Email Services */
+    this.emailService.sendOtpForgotPassword(
+      user.fullName,
+      user.email,
+      generateOtp,
+      "5 Min"
+    )
+
+    return {
+      success: true,
+      message: "Otp send to your email Id.",
+      data: {
+        createdAt: save?.createdAt
+      }
+    }
+
+
+  }
+
+  async forgotPasswordOtpVerifycation(email: string, otp: string) {
+    if (!email) {
+      throw new BadRequestException('Email is required')
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: {
+        email: email
+      }
+    })
+
+    if (!user) {
+      throw new BadRequestException('Invalid email id')
+    }
+
+    const dataotp = await this.prisma.passwordResetOtp.findFirst({
+      where: {
+        userId: user.id,
+        consumedAt: null
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    })
+
+    if (!dataotp) {
+      throw new BadRequestException('otp will be expired or invalid')
+    }
+
+    const decodehashOtp = await bcrypt.compare(otp, dataotp?.codeHash)
+
+    if (!decodehashOtp) {
+      throw new BadRequestException('otp will be expired')
+    }
+
+    const resetTokenPayload = {
+      userId: user?.id
+    }
+
+    const resetToken = await this.jwtService.sign(
+      resetTokenPayload,
+      {
+        secret: this.config.getOrThrow<string>('JWT_RESET_SECRET'),
+        expiresIn: this.config.get<string>(
+          'JWT_RESET_EXPIRES_IN',
+          '5m'
+        ) as never
+      }
+    )
+
+    return {
+      success: true,
+      message: "Otp verify successfully",
+      data: {
+        resetToken
+      }
+    }
+
+  }
+
+  async resetPassowrd(email: string, resetToken: string, password: string) {
+    if (!resetToken) {
+      throw new BadRequestException("Something went wrong")
+    }
+
+    try {
+      const decode = await this.jwtService.verifyAsync(resetToken, {
+        secret: this.config.getOrThrow<string>('JWT_RESET_SECRET'),
+      })
+
+      if (!decode) {
+        throw new BadRequestException("Session will be expired.")
+      }
+
+      console.log("decode", decode)
+
+      const responseChangePassword = await this.usersServices.changePassword(decode.userId, {
+        password: password
+      })
+
+      return responseChangePassword
+    } catch (error) {
+      return error
+    }
+  }
 }

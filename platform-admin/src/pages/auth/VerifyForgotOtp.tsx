@@ -3,40 +3,84 @@ import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
 import { Spinner } from '@/components/ui/spinner'
+import { useOtpCountdown } from '@/hooks/use-count'
+import { useAppDispatch } from '@/hooks/use-store'
+import { fetchForgotPassword, forgotPasswordVerifyOtp } from '@/store/auth/authSlice'
 import { ArrowLeft } from 'lucide-react'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
+import { toast } from 'sonner'
 
 const VerifyForgotOtpPage = () => {
 
     const location = useLocation()
     const email = (location.state as { email?: string })?.email
-
-    console.log("location",location)
+    const otpCreatedLocation = (location.state as { createdAt?: string })?.createdAt
 
     const [otp, setOtp] = useState<string>()
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
     const [error, setError] = useState<string | null>(null)
-    const [resetToken,setResetToken] = useState<string | null>()
+    const dispatch = useAppDispatch()
+    const [otpCreatedAt, setOtpCreatedAt] = useState<string>(location?.state?.createdAt || otpCreatedLocation)
+
+    const { remainingSeconds, formattedTime, isExpired } = useOtpCountdown(otpCreatedAt, 5)
 
     const navigate = useNavigate()
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
 
         setIsSubmitting(true)
-        setTimeout(() => {
-            setIsSubmitting(false)
-            setOtp("")
 
-            navigate('/auth/reset-password',{
-                state : {
-                    email : email,
-                    resetToken : resetToken
-                }
+        const response = await dispatch(forgotPasswordVerifyOtp({
+            email: email,
+            otp: otp
+        }))
+
+        if (response?.payload?.success) {
+            navigate('/auth/reset-password', {
+                state: {
+                    email: email,
+                    resetToken: response?.payload?.data?.resetToken
+                },
+                replace: true
             })
-        }, 2000);
+            setOtp("")
+            toast.success(response?.payload?.message)
+            setIsSubmitting(false)
+        } else {
+            const errorMessage = response?.payload?.message || response?.payload
+            toast.error(errorMessage)
+            setIsSubmitting(false)
+            setError(errorMessage)
+        }
+
     }
+
+    const handleResendOtp = async () => {
+        setIsSubmitting(true)
+
+        const response = await dispatch(fetchForgotPassword({
+            email: email
+        }))
+
+        console.log("response", response)
+        if (response?.payload?.success) {
+            setOtpCreatedAt(response?.payload?.data?.createdAt)
+            toast.success(response?.payload?.message)
+            setIsSubmitting(false)
+        } else {
+            const errorMessage = response?.payload?.message || response?.payload
+            toast.error(errorMessage)
+            setIsSubmitting(false)
+        }
+    }
+
+    useEffect(() => {
+        if (!email) {
+            navigate('/auth/forgot-password')
+        }
+    }, [email])
 
     return (
         <div className='w-full max-w-sm'>
@@ -86,6 +130,18 @@ const VerifyForgotOtpPage = () => {
                 </InputOTP>
 
                 {
+                    isExpired ? (
+                        <Button onClick={handleResendOtp} type='button' variant='link' className='mt-3 cursor-pointer'>
+                            Resend OTP
+                        </Button>
+                    ) : (
+                        <>
+                            <p className='text-muted-foreground mt-3'>OTP will be expired at : {formattedTime}</p>
+                        </>
+                    )
+                }
+
+                {
                     error && (
                         <p className="mt-3 text-sm text-destructive">{error}</p>
                     )
@@ -112,6 +168,8 @@ const VerifyForgotOtpPage = () => {
                 </Button>
 
             </form>
+
+
         </div>
     )
 }

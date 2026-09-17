@@ -1,4 +1,5 @@
 import type { loginResponse } from "@/api/auth";
+import PasswordInput from "@/components/PasswordInput";
 import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -20,39 +21,39 @@ export default function LoginPage() {
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
     const [error, setError] = useState<string | null>("")
 
-    const handleSubmit = async(e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
-        
+
         setIsSubmitting(true)
         setError(null)
         try {
-            const result:any= await dispatch(fetchLogin({
-                email : email,
-                password : password
+            const result: any = await dispatch(fetchLogin({
+                email: email,
+                password: password
             }))
 
             const reponse = result?.payload as loginResponse
-            if(
-                reponse.accessToken && 
+            if (
+                reponse.accessToken &&
                 reponse.refreshToken &&
                 reponse.userType
-            ){
+            ) {
                 navigate('/dashboard')
             }
-            else if(reponse.requiredsTwoFactor && reponse.twoFactorToken){
-                navigate('/auth/2fa',{
-                    state : {
-                        email : email,
-                        twoFactorToken : reponse.twoFactorToken
+            else if (reponse.requiredsTwoFactor && reponse.twoFactorToken) {
+                navigate('/auth/2fa', {
+                    state: {
+                        email: email,
+                        twoFactorToken: reponse.twoFactorToken
                     }
                 })
             }
-            else{
+            else {
                 setError(result?.payload)
-            }  
+            }
         } catch (error) {
-            setError(getAxiosErrorMessage(error,"Failed to login"))
-        }finally{
+            setError(getAxiosErrorMessage(error, "Failed to login"))
+        } finally {
             setIsSubmitting(false)
         }
     }
@@ -99,9 +100,8 @@ export default function LoginPage() {
                                 Forgot Password?
                             </Link>
                         </div>
-                        <Input
+                        <PasswordInput
                             id="password"
-                            type="password"
                             className="h-11"
                             placeholder="••••••••"
                             autoComplete="current-password"

@@ -64,6 +64,7 @@ export class UsersService {
           id: id
         },
         data: {
+          passwordUpdatedAt : new Date(),
           passwordHash: passswordHash
         }
       })

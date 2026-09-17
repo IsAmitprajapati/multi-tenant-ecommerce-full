@@ -1,4 +1,4 @@
-import { authApi, type IVerify2FALoginOtp, type IVerifyEnablDisableTwoFactor, type loginPayload, type loginResponse, } from '@/api/auth'
+import { authApi, type ForgotPasswordPayload, type IResetPassowordPayload, type ISessionPayload, type IVerify2FALoginOtp, type IVerifyEnablDisableTwoFactor, type loginPayload, type loginResponse, } from '@/api/auth'
 import { getAxiosErrorMessage } from '@/lib/api.error'
 import { storage } from '@/lib/storage'
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
@@ -22,10 +22,21 @@ export interface IUser {
     twoFactorEnabled?: boolean;
     twoFactorSecret?: boolean;
     password?: string;
+    passwordUpdatedAt? : Date;
     role?: IRole;
     userType?: string;
     createdAt?: Date;
     updatedAt?: Date;
+}
+
+export interface ISessions {
+    id: string
+    deviceLabel: string,
+    ipAddress: string,
+    createdAt: Date,
+    lastActiveAt: Date,
+    expiresAt: Date,
+    isCurrent: Boolean
 }
 
 export type AsyncStatus = 'idle' | 'pending' | 'succeeded' | 'failed' | 'loading'
@@ -41,7 +52,10 @@ interface AuthState {
     isLoading?: boolean,
 
     twoFactorToken: string | null,
-    requiredsTwoFactor: boolean
+    requiredsTwoFactor: boolean,
+
+    sessions: ISessions[]
+    isSessionsLoading: boolean
 }
 
 const initialState: AuthState = {
@@ -54,6 +68,9 @@ const initialState: AuthState = {
     isLoading: false,
     twoFactorToken: null,
     requiredsTwoFactor: false,
+
+    sessions: [],
+    isSessionsLoading: false
 }
 
 export const fetchLogin = createAsyncThunk('auth/login',
@@ -137,8 +154,6 @@ export const verifyEnablDisableTwoFactor = createAsyncThunk('auth/verify-enableD
     }
 )
 
-
-
 export const Verify2FALoginOtp = createAsyncThunk('auth/Verify2FALoginOtp',
     async (payload: IVerify2FALoginOtp, { rejectWithValue }) => {
         try {
@@ -147,6 +162,76 @@ export const Verify2FALoginOtp = createAsyncThunk('auth/Verify2FALoginOtp',
             return tokens
         } catch (error) {
             return rejectWithValue(getAxiosErrorMessage(error, "Could not sign in"))
+        }
+    }
+)
+
+
+export const sessionsList = createAsyncThunk('auth/sessions-list',
+    async (_, { rejectWithValue }) => {
+        try {
+            const data = await authApi.sessions();
+            return data
+        } catch (error) {
+            return rejectWithValue(getAxiosErrorMessage(error, "Failed to fetch"))
+        }
+    }
+)
+
+export const sessionRevoke = createAsyncThunk('auth/session-revoke',
+    async (payload: ISessionPayload, { rejectWithValue }) => {
+        try {
+            const data = await authApi.sessionRevoke(payload);
+            return data
+        } catch (error) {
+            return rejectWithValue(getAxiosErrorMessage(error, "Failed to fetch"))
+        }
+    }
+)
+
+export const sessionRevokeOthers = createAsyncThunk('auth/session-others',
+    async (_, { rejectWithValue }) => {
+        try {
+            const data = await authApi.sessionRevokeOthers();
+            return data
+        } catch (error) {
+            return rejectWithValue(getAxiosErrorMessage(error, "Failed to fetch"))
+        }
+    }
+)
+
+
+/****Forgot Password */
+export const fetchForgotPassword = createAsyncThunk('auth/forgot-password',
+    async (payload:ForgotPasswordPayload, { rejectWithValue }) => {
+        try {
+            const data = await authApi.forgotPassword(payload);
+            return data
+        } catch (error) {
+            return rejectWithValue(getAxiosErrorMessage(error, "Failed to fetch"))
+        }
+    }
+)
+
+export const forgotPasswordVerifyOtp = createAsyncThunk('auth/forgot-password-verify-otp',
+    async (payload:ForgotPasswordPayload, { rejectWithValue }) => {
+        try {
+            const data = await authApi.forgotPasswordOtpVerify(payload);
+            return data
+        } catch (error) {
+            return rejectWithValue(getAxiosErrorMessage(error, "Failed to fetch"))
+        }
+    }
+)
+
+
+export const restPasswordAPI = createAsyncThunk('auth/reset-password',
+    async (payload:IResetPassowordPayload, { rejectWithValue }) => {
+        try {
+            const data = await authApi.resetPassword(payload);
+            return data
+        } catch (error) {
+            return rejectWithValue(getAxiosErrorMessage(error, "Failed to fetch"))
         }
     }
 )
@@ -293,6 +378,20 @@ export const authSlice = createSlice({
                 state.userType = 'PLATFORM_ADMIN'
             })
 
+
+            /****Sessions */
+            .addCase(sessionsList.pending, (state) => {
+                state.isSessionsLoading = true
+                state.sessions = []
+            })
+            .addCase(sessionsList.fulfilled, (state, actionPayload) => {
+                state.isSessionsLoading = false
+                state.sessions = actionPayload.payload
+            })
+            .addCase(sessionsList.rejected, (state, actionPayload) => {
+                state.isSessionsLoading = false;
+                state.sessions = []
+            })
     },
 })
 

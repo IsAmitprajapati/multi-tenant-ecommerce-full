@@ -49,5 +49,41 @@ Amit Prajapati
             )
         }
     }
-    
+
+    async sendOtpForgotPassword(
+        userName: string,
+        toEmail: string,
+        otp: string,
+        expiredOtp : string
+    ) {
+        this.logger.log("Sending otp")
+        try {
+            await this.resend.emails.send({
+                from: this.fromEmail,
+                to: toEmail,
+                subject: 'Your Password Reset OTP',
+                text: `
+Hi ${userName},
+
+We received a request to reset the password for your account.
+
+Your One-Time Password (OTP) is:
+
+${otp}
+
+This OTP is valid for ${expiredOtp}. For your security, please do not share this OTP with anyone.
+
+If you did not request a password reset, please ignore this email or contact our support team.
+
+Best regards,
+Amit Prajapati
+
+                `
+            })
+        } catch (error) {
+            this.logger.warn(
+                `Resend Send Failed : ${(error as Error)?.message}`
+            )
+        }
+    }
 }

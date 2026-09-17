@@ -40,6 +40,8 @@ model User {
   createdAt             DateTime @default(now()) @map("created_at")
   updatedAt             DateTime @updatedAt @map("updated_at")
 
+  passwordUpdatedAt     DateTime @default(now()) @map("password_updated_at")
+
   passwordResetOtps     PasswordResetOtp[]
   sessions              UserSession[]
 
@@ -55,7 +57,7 @@ model PasswordResetOtp {
   user            User    @relation(fields: [userId], references: [id],onDelete: Cascade)
   codeHash        String   @map("code_hash")
   expiresAt       DateTime @map("expires_at")
-  consumedAt      DateTime @map("consumed_at")
+  consumedAt      DateTime? @map("consumed_at")
   createdAt       DateTime  @default(now()) @map("created_at")
 
   @@map("password_reset_otps")
@@ -72,6 +74,10 @@ model UserSession {
   lastActiveAt      DateTime  @default(now()) @map("last_active_at")
   expiresAt         DateTime  @map("expires_at")
   revokedAt         DateTime?  @map("revoked_at")
+
+  os            String? @map("os")
+  device        String? @map("device")
+  browser       String? @map("browser")
 
   @@map("user_sessions")
 }

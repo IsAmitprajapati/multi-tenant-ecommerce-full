@@ -4,9 +4,11 @@ import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { useAppDispatch, useAppSelector } from "@/hooks/use-store";
-import { CheckCircle2, ShieldCheckIcon } from "lucide-react";
-import { useState } from "react";
-import { Link, useLocation } from "react-router";
+import { restPasswordAPI } from "@/store/auth/authSlice";
+import { ArrowLeft, CheckCircle2, ShieldCheckIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router";
+import { toast } from "sonner";
 
 export default function ResetPassword() {
     const dispatch = useAppDispatch()
@@ -23,41 +25,60 @@ export default function ResetPassword() {
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
     const [isDone, setIsDone] = useState<boolean>(false)
     const [error, setError] = useState<string | null>(null)
+    const navigate = useNavigate()
 
 
     const misMatch = confirmPassword.length > 0 && password !== confirmPassword
 
-    const handleSubmit = (e) => {
+    useEffect(() => {
+        if (!email || !resetToken) {
+            navigate('/auth/forgot-password')
+        }
+    }, [email, resetToken])
+
+
+    console.log("reset-", email, resetToken)
+
+    const handleSubmit = async (e) => {
         e.preventDefault()
 
-        if (misMatch) return;
-        // if (!resetToken) {
-        //     setError("Something went wrong")
-        // }
+        if (misMatch) {
+            setError("Password and confirm password must be same.")
+            return
+        };
+        if (!resetToken) {
+            setError("Session will be expired,Retry")
+            return
+        }
+
+        const payload = {
+            email: email,
+            resetToken: resetToken,
+            password: password
+        }
 
         setIsSubmitting(true)
-        // try {
-            setTimeout(() => {
+        const response = await dispatch(restPasswordAPI(payload))
 
-                setPassword("")
-                setConfirmPassword("")
-                setIsDone(true)
-                setIsSubmitting(false)
-            }, 2000);
-        // } catch(err) {
-            // setError(typeof err==="string" ? err : "Could not reset password")
-        // } finally {
-           
-        // }
-
-
+        if (response?.payload?.success) {
+            setPassword("")
+            setConfirmPassword("")
+            setIsDone(true)
+            setIsSubmitting(false)
+            toast.success(response?.payload?.message || "Password reset successfully")
+        } else {
+            const errorMessage = response?.payload?.message || response?.payload
+            toast.error(errorMessage)
+        }
     }
 
-    if(isDone){
-        return(
+
+
+    if (isDone) {
+        return (
             <div className="w-full max-w-sm flex flex-col justify-center items-center">
                 <div className="flex size-16 items-center justify-center rounded-full bg-accent">
-                    <CheckCircle2 className="size-6 text-primary"/>
+                    <CheckCircle2 className="size-6 text-primary" />
                 </div>
                 <h2 className="mt-4 text-2xl font-bold">
                     Password Updated
@@ -69,7 +90,7 @@ export default function ResetPassword() {
                     <Link
                         to={"/auth/login"}
                     >
-                        Back to sign in 
+                        Back to sign in
                     </Link>
                 </Button>
             </div>
@@ -79,6 +100,16 @@ export default function ResetPassword() {
 
     return (
         <div className="w-full max-w-sm">
+
+            <Link
+                to={'/auth/login'}
+                arial-label="Back to sign in"
+                className='mb-4 inline-flex text-foreground items-center gap-2'
+            >
+                <ArrowLeft className='size-5' />
+                Back
+            </Link>
+
             <h2 className="text-2xl font-bold">Set a new Password</h2>
             <p className="mt-1.5 text-sm text-muted-foreground">
                 {
@@ -113,7 +144,7 @@ export default function ResetPassword() {
                         />
                     </Field>
 
-                     <Field>
+                    <Field>
                         <FieldLabel>
                             Confirm Password
                         </FieldLabel>

@@ -29,6 +29,21 @@ interface SuccessResponse {
 }
 
 
+export interface ISessionPayload {
+    sessionId : string
+}
+
+export interface ForgotPasswordPayload {
+    email : string
+    otp? : string
+}
+
+export interface IResetPassowordPayload{
+ email : string;
+ password : string;
+ resetToken : string
+}
+
 export const authApi = {
     login : (payload : loginPayload) => Axios.post<loginResponse>('/auth/login',payload).then((res) => res?.data),
     me : () => Axios.get<IUser>('/auth/me').then((res) => res?.data),
@@ -40,4 +55,12 @@ export const authApi = {
     
     Verify2FALoginOtp : (payload : IVerify2FALoginOtp) => Axios.post<loginResponse>('/auth/2fa-verify-login-otp',payload).then((res) => res?.data),
 
+    sessions : ()=> Axios.get('/auth/sessions').then((res)=>res.data),
+    sessionRevoke : (payload : ISessionPayload)=> Axios.post(`/auth/sessions/${payload?.sessionId}/revoke`).then((res)=>res.data),
+    sessionRevokeOthers : ()=>Axios.post('/auth/sessions/revoke-others').then(res => res.data),
+
+    forgotPassword : (payload : ForgotPasswordPayload) => Axios.post('/auth/forgot-password',payload).then(res => res.data),
+    forgotPasswordOtpVerify : (payload : ForgotPasswordPayload) => Axios.post('/auth/forgot-password-verify-otp',payload).then(res => res.data),
+    
+    resetPassword : (payload : IResetPassowordPayload) => Axios.post('/auth/reset-password',payload).then(res => res.data)
 }
