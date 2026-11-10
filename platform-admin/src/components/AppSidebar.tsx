@@ -72,11 +72,11 @@ const AppSidebar = () => {
                 </SidebarGroup>
             </SidebarContent>
             <SidebarFooter>
-                <div className='flex items-center gap-2.5 rounded-md bg-white/[0.06] p-3'>
-                    <div className='flex flex-1 items-center gap-2.5'>
+                <div className='flex min-w-0 items-center gap-2.5 rounded-md bg-white/[0.06] p-3'>
+                    <div className='flex min-w-0 flex-1 items-center gap-2.5'>
                         {/****Image or Amit Prajapati  => AP */}
                         <div>
-                            <Avatar>
+                            <Avatar className='shrink-0'>
                                 <AvatarImage src={user?.profile_image} />
                                 <AvatarFallback className='bg-[#9fe870] font-semibold text-accent-foreground'>{user?.avatarName}</AvatarFallback>
                             </Avatar>
@@ -91,7 +91,7 @@ const AppSidebar = () => {
                             </div>
                         </div>
                     </div>
-                    <button onClick={handleLogout} className='srink-0 cursor-pointer p-2 rounded-md text-accent hover:bg-white/10 hover:text-white'>
+                    <button onClick={handleLogout} aria-label='Sign out' className='shrink-0 cursor-pointer p-2 rounded-md text-accent hover:bg-white/10 hover:text-white'>
                         <LogOut className='size-4' />
                     </button>
                 </div>

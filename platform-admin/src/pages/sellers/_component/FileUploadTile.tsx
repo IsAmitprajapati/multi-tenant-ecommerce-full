@@ -57,7 +57,7 @@ const FileUploadTile = ({ kind, label, hint, required, value, onChange, error, d
     const shownError = uploadError ?? error
 
     return (
-        <div>
+        <div className='min-w-0'>
             <div
                 role='button'
                 tabIndex={disabled ? -1 : 0}
@@ -68,8 +68,8 @@ const FileUploadTile = ({ kind, label, hint, required, value, onChange, error, d
                 onDragLeave={() => setDragging(false)}
                 onDrop={e => { e.preventDefault(); setDragging(false); start(e.dataTransfer.files?.[0]) }}
                 className={cn(
-                    'relative flex items-center gap-3 rounded-xl border-[1.5px] p-4 transition-colors outline-none',
-                    'focus-visible:ring-3 focus-visible:ring-ring/50',
+                    'relative flex w-full min-w-0 items-center gap-3 overflow-hidden rounded-xl border-[1.5px] p-4 transition-colors outline-none',
+                    'focus-visible:ring-2 focus-visible:ring-ring/30',
                     value ? 'border-solid border-primary/40 bg-primary/5' : 'border-dashed',
                     dragging && 'border-primary bg-primary/5',
                     shownError && !value && 'border-destructive/60',
@@ -87,11 +87,11 @@ const FileUploadTile = ({ kind, label, hint, required, value, onChange, error, d
                                 : <Icon className='size-5' />}
                 </div>
 
-                <div className='min-w-0 flex-1'>
-                    <div className='text-sm font-semibold'>
-                        {label}{required && <span className='text-destructive'> *</span>}
+                <div className='min-w-0 flex-1 overflow-hidden'>
+                    <div className='truncate text-sm font-semibold'>
+                        {kind === 'logo' && value ? 'Logo uploaded' : label}{required && <span className='text-destructive'> *</span>}
                     </div>
-                    <div className='truncate text-xs text-muted-foreground'>
+                    <div className='truncate text-xs text-muted-foreground' title={value?.name}>
                         {uploading ? `Uploading… ${progress}%`
                             : value ? value.name
                                 : hint ?? 'Click or drop a file to upload'}
@@ -109,7 +109,7 @@ const FileUploadTile = ({ kind, label, hint, required, value, onChange, error, d
                         <XIcon className='size-4' />
                     </button>
                 ) : value ? (
-                    <div className='flex gap-1'>
+                    <div className='flex shrink-0 gap-1'>
                         <button type='button' aria-label={`Replace ${label}`} title='Replace' disabled={disabled}
                             className='rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground'
                             onClick={e => { e.stopPropagation(); inputRef.current?.click() }}>

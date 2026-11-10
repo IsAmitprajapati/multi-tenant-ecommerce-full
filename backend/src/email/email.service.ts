@@ -128,4 +128,64 @@ Amit Prajapati
             return false
         }
     }
+
+    /** Shared plain-text sender for the seller lifecycle emails */
+    private async sendText(toEmail: string, subject: string, text: string): Promise<boolean> {
+        try {
+            const { error } = await this.resend.emails.send({ from: this.fromEmail, to: toEmail, subject, text })
+            if (error) {
+                this.logger.warn(`Resend Send Failed : ${error.message}`)
+                return false
+            }
+            return true
+        } catch (error) {
+            this.logger.warn(`Resend Send Failed : ${(error as Error)?.message}`)
+            return false
+        }
+    }
+
+    /** Self-service application submitted */
+    sendSellerApplicationReceived(ownerName: string, toEmail: string, sellerName: string) {
+        this.logger.log("Sending seller application received")
+        return this.sendText(toEmail, `We received your application for ${sellerName}`, `
+Hi ${ownerName},
+
+Thanks for applying to sell on our marketplace. We're reviewing the business details and KYC documents for ${sellerName}.
+
+Most applications are reviewed within 2 business days. We'll email you as soon as your seller account is approved.
+
+Best regards,
+Amit Prajapati
+`)
+    }
+
+    /** Application approved — seller can sign in and go live */
+    sendSellerApproved(ownerName: string, toEmail: string, sellerName: string, sellerAdminUrl: string) {
+        this.logger.log("Sending seller approved")
+        return this.sendText(toEmail, `${sellerName} is approved — you can start selling`, `
+Hi ${ownerName},
+
+Good news — ${sellerName} has been approved and your seller dashboard is ready.
+
+Sign in to list your products and go live:
+${sellerAdminUrl}/auth/login
+
+Best regards,
+Amit Prajapati
+`)
+    }
+
+    /** KYC rejected — seller fixes details and re-submits */
+    sendSellerRejected(ownerName: string, toEmail: string, sellerName: string, sellerAdminUrl: string) {
+        this.logger.log("Sending seller KYC rejected")
+        return this.sendText(toEmail, `Action needed on your application for ${sellerName}`, `
+Hi ${ownerName},
+
+We couldn't verify the KYC documents for ${sellerName}. Please sign in, check your business details and upload clear copies of the documents, then submit your application again:
+${sellerAdminUrl}/auth/login
+
+Best regards,
+Amit Prajapati
+`)
+    }
 }

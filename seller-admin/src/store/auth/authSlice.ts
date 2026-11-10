@@ -1,0 +1,426 @@
+import { authApi, type ForgotPasswordPayload, type IResetPassowordPayload, type ISessionPayload, type IVerify2FALoginOtp, type IVerifyEnablDisableTwoFactor, type loginPayload, type loginResponse, } from '@/api/auth'
+import { getAxiosErrorMessage } from '@/lib/api.error'
+import { storage } from '@/lib/storage'
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
+import type { PermissionMap } from '@/lib/permissions'
+import type { PayloadAction } from '@reduxjs/toolkit'
+
+/** The seller (business) a seller user belongs to — from /auth/me */
+export interface ISellerSummary {
+    id: string
+    name: string
+    slug: string
+    logoUrl: string | null
+    brandColor: string
+    status: 'PENDING' | 'ACTIVE' | 'SUSPENDED'
+    kycStatus: 'PENDING' | 'UNDER_REVIEW' | 'VERIFIED' | 'REJECTED'
+    isOwner: boolean
+}
+
+export interface IRole {
+    id: string
+    name: string;
+    isSystem?: boolean;
+    userType?: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
+export interface IUser {
+    id: string
+    email: string
+    fullName: string
+    phone: string
+    status?: string;
+    profile_image: string;
+    avatarName: string;
+    twoFactorEnabled?: boolean;
+    twoFactorSecret?: boolean;
+    password?: string;
+    passwordUpdatedAt? : Date;
+    role?: IRole | null;
+    permissions?: PermissionMap;
+    seller?: ISellerSummary | null;
+    userType?: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
+export interface ISessions {
+    id: string
+    deviceLabel: string,
+    ipAddress: string,
+    createdAt: Date,
+    lastActiveAt: Date,
+    expiresAt: Date,
+    isCurrent: Boolean
+}
+
+export type AsyncStatus = 'idle' | 'pending' | 'succeeded' | 'failed' | 'loading'
+export type USER_TYPE = "CUSTOMER" | "SELLER" | "PLATFORM_ADMIN" | "DELIVERY_AGENT"
+
+interface AuthState {
+    user: IUser,
+    accessToken: string | null,
+    refreshToken: string | null,
+    userType: USER_TYPE,
+    status: AsyncStatus,
+    error: string | null,
+    isLoading?: boolean,
+
+    twoFactorToken: string | null,
+    requiredsTwoFactor: boolean,
+
+    sessions: ISessions[]
+    isSessionsLoading: boolean
+}
+
+const initialState: AuthState = {
+    user: null,
+    accessToken: storage.getAccessToken(),
+    refreshToken: storage.getRefreshToken(),
+    userType: 'SELLER',
+    status: 'idle',
+    error: null,
+    isLoading: false,
+    twoFactorToken: null,
+    requiredsTwoFactor: false,
+
+    sessions: [],
+    isSessionsLoading: false
+}
+
+export const fetchLogin = createAsyncThunk('auth/login',
+    async (payload: loginPayload, { rejectWithValue }) => {
+        try {
+            const tokens = await authApi.login(payload);
+            storage.setToken(tokens.accessToken, tokens.refreshToken)
+
+            return tokens
+        } catch (error) {
+            return rejectWithValue(getAxiosErrorMessage(error, "Could not sign in"))
+        }
+    }
+)
+
+export const fetchMe = createAsyncThunk('auth/me',
+    async (payload, { rejectWithValue }) => {
+        try {
+            const data = await authApi.me();
+            return data
+        } catch (error) {
+            return rejectWithValue(getAxiosErrorMessage(error, "Failed to fetch"))
+        }
+    }
+)
+
+
+export const logoutUser = createAsyncThunk('auth/logout',
+    async (_, { rejectWithValue }) => {
+        try {
+            const data = await authApi.logout();
+            return data
+        } catch (error) {
+            return rejectWithValue(getAxiosErrorMessage(error, "Failed to fetch"))
+        }
+    }
+)
+
+
+export const updateCurrentUser = createAsyncThunk('auth/updateCurrentUser',
+    async (payload: Partial<IUser>, { rejectWithValue }) => {
+        try {
+            const data = await authApi.updateCurrentUser(payload);
+            return data
+        } catch (error) {
+            return rejectWithValue(getAxiosErrorMessage(error, "Failed to update"))
+        }
+    }
+)
+
+export const changePassword = createAsyncThunk('auth/changePassword',
+    async (payload: Partial<IUser>, { rejectWithValue }) => {
+        try {
+            const data = await authApi.changePassword(payload);
+            return data
+        } catch (error) {
+            return rejectWithValue(getAxiosErrorMessage(error, "Failed to update"))
+        }
+    }
+)
+
+export const twoFactorGenerateOtp = createAsyncThunk('auth/twoFactorGenerateOtp',
+    async (_, { rejectWithValue }) => {
+        try {
+            const data = await authApi.twoFactorGenerateOtp();
+            return data
+        } catch (error) {
+            return rejectWithValue(getAxiosErrorMessage(error, "Failed to generate otp"))
+        }
+    }
+)
+
+export const verifyEnablDisableTwoFactor = createAsyncThunk('auth/verify-enableDisableTwoFactor',
+    async (payload: IVerifyEnablDisableTwoFactor, { rejectWithValue }) => {
+        try {
+            const data = await authApi.verifyEnablDisableTwoFactor(payload);
+            return data
+        } catch (error) {
+            return rejectWithValue(getAxiosErrorMessage(error, "Failed to generate otp"))
+        }
+    }
+)
+
+export const Verify2FALoginOtp = createAsyncThunk('auth/Verify2FALoginOtp',
+    async (payload: IVerify2FALoginOtp, { rejectWithValue }) => {
+        try {
+            const tokens = await authApi.Verify2FALoginOtp(payload);
+            storage.setToken(tokens.accessToken, tokens.refreshToken)
+            return tokens
+        } catch (error) {
+            return rejectWithValue(getAxiosErrorMessage(error, "Could not sign in"))
+        }
+    }
+)
+
+
+export const sessionsList = createAsyncThunk('auth/sessions-list',
+    async (_, { rejectWithValue }) => {
+        try {
+            const data = await authApi.sessions();
+            return data
+        } catch (error) {
+            return rejectWithValue(getAxiosErrorMessage(error, "Failed to fetch"))
+        }
+    }
+)
+
+export const sessionRevoke = createAsyncThunk('auth/session-revoke',
+    async (payload: ISessionPayload, { rejectWithValue }) => {
+        try {
+            const data = await authApi.sessionRevoke(payload);
+            return data
+        } catch (error) {
+            return rejectWithValue(getAxiosErrorMessage(error, "Failed to fetch"))
+        }
+    }
+)
+
+export const sessionRevokeOthers = createAsyncThunk('auth/session-others',
+    async (_, { rejectWithValue }) => {
+        try {
+            const data = await authApi.sessionRevokeOthers();
+            return data
+        } catch (error) {
+            return rejectWithValue(getAxiosErrorMessage(error, "Failed to fetch"))
+        }
+    }
+)
+
+
+/****Forgot Password */
+export const fetchForgotPassword = createAsyncThunk('auth/forgot-password',
+    async (payload:ForgotPasswordPayload, { rejectWithValue }) => {
+        try {
+            const data = await authApi.forgotPassword(payload);
+            return data
+        } catch (error) {
+            return rejectWithValue(getAxiosErrorMessage(error, "Failed to fetch"))
+        }
+    }
+)
+
+export const forgotPasswordVerifyOtp = createAsyncThunk('auth/forgot-password-verify-otp',
+    async (payload:ForgotPasswordPayload, { rejectWithValue }) => {
+        try {
+            const data = await authApi.forgotPasswordOtpVerify(payload);
+            return data
+        } catch (error) {
+            return rejectWithValue(getAxiosErrorMessage(error, "Failed to fetch"))
+        }
+    }
+)
+
+
+export const restPasswordAPI = createAsyncThunk('auth/reset-password',
+    async (payload:IResetPassowordPayload, { rejectWithValue }) => {
+        try {
+            const data = await authApi.resetPassword(payload);
+            return data
+        } catch (error) {
+            return rejectWithValue(getAxiosErrorMessage(error, "Failed to fetch"))
+        }
+    }
+)
+
+
+
+export const authSlice = createSlice({
+    name: 'auth',
+    initialState,
+    reducers: {
+        clearAuthError(state) {
+            state.error = null;
+        },
+        /** After self-service signup: the new account is signed in straight away */
+        setSession(state, action: PayloadAction<{ accessToken: string; refreshToken: string }>) {
+            storage.setToken(action.payload.accessToken, action.payload.refreshToken)
+            state.accessToken = action.payload.accessToken
+            state.refreshToken = action.payload.refreshToken
+            state.userType = 'SELLER'
+        }
+    },
+    extraReducers(builder) {
+        builder.addCase(fetchLogin.pending, (state) => {
+            state.status = 'loading'
+            state.error = null;
+        })
+            .addCase(fetchLogin.fulfilled, (state, action) => {
+                state.status = 'succeeded';
+                state.accessToken = action?.payload?.accessToken;
+                state.refreshToken = action?.payload?.refreshToken;
+                state.userType = action?.payload?.userType
+
+                state.requiredsTwoFactor = action?.payload?.requiredsTwoFactor
+                state.twoFactorToken = action?.payload?.twoFactorToken
+            })
+            .addCase(fetchLogin.rejected, (state, action) => {
+                state.status = 'failed'
+                state.error = action?.payload as string;
+                state.accessToken = null;
+                state.refreshToken = null;
+                state.userType = 'SELLER'
+            })
+
+            /*****Current User Details */
+            .addCase(fetchMe.pending, (state) => {
+                // Keep the current user while refreshing so pages don't unmount
+                state.status = 'loading'
+            })
+            .addCase(fetchMe.fulfilled, (state, action) => {
+                state.status = 'succeeded'
+
+                state.user = {
+                    ...action.payload,
+                    avatarName: `${action.payload?.fullName?.split(' ')?.[0]?.[0] ?? ""}${action.payload?.fullName?.split(' ')?.[1]?.[0] ?? ""}`
+                }
+
+
+            })
+            .addCase(fetchMe.rejected, (state) => {
+                state.status = 'failed'
+                state.user = null
+            })
+
+
+            /***Logout */
+            .addCase(logoutUser.pending, (state) => {
+                state.status = 'loading'
+            })
+            .addCase(logoutUser.fulfilled, (state, actionPayload) => {
+                state.status = 'idle'
+                state.user = null;
+                state.accessToken = null;
+                state.refreshToken = null;
+                state.error = null;
+
+                storage.clear()
+            })
+            .addCase(logoutUser.rejected, (state, actionPayload) => {
+                state.status = 'failed'
+                state.error = null;
+            })
+
+
+            /*****updateCurrentUser */
+            .addCase(updateCurrentUser.pending, (state) => {
+                // state.status = 'loading'
+                // state.user = null
+                state.isLoading = true
+            })
+            .addCase(updateCurrentUser.fulfilled, (state, action) => {
+                // state.status = 'succeeded's
+                state.isLoading = false
+                const user = (action?.payload as any)?.data
+                state.user = {
+                    ...state.user,
+                    fullName: user?.fullName,
+                    email: user?.email,
+                    phone: user?.phone,
+                    avatarName: `${user?.fullName?.split(' ')?.[0]?.[0] ?? ""}${user?.fullName?.split(' ')?.[1]?.[0] ?? ""}`
+                }
+
+            })
+            .addCase(updateCurrentUser.rejected, (state) => {
+                // state.status = 'failed'
+                state.isLoading = false
+            })
+
+
+            /***Enable and Disable Two Factor Update */
+            .addCase(verifyEnablDisableTwoFactor.pending, (state) => {
+                // state.status = 'loading'
+                // state.user = null
+                state.isLoading = true
+            })
+            .addCase(verifyEnablDisableTwoFactor.fulfilled, (state, action) => {
+                // state.status = 'succeeded's
+                state.isLoading = false
+                const user = (action?.payload as any)?.data
+                state.user = {
+                    ...state.user,
+                    twoFactorEnabled: user?.twoFactorEnabled
+                }
+
+            })
+            .addCase(verifyEnablDisableTwoFactor.rejected, (state) => {
+                // state.status = 'failed'
+                state.isLoading = false
+            })
+
+
+
+            /*****2FA OTP Login Verify */
+            .addCase(Verify2FALoginOtp.pending, (state) => {
+                state.status = 'loading'
+                state.error = null;
+            })
+            .addCase(Verify2FALoginOtp.fulfilled, (state, action) => {
+                state.status = 'succeeded';
+                state.accessToken = action?.payload?.accessToken;
+                state.refreshToken = action?.payload?.refreshToken;
+                state.userType = action?.payload?.userType
+
+                state.requiredsTwoFactor = action?.payload?.requiredsTwoFactor
+                state.twoFactorToken = action?.payload?.twoFactorToken
+            })
+            .addCase(Verify2FALoginOtp.rejected, (state, action) => {
+                state.status = 'failed'
+                state.error = action?.payload as string;
+                state.accessToken = null;
+                state.refreshToken = null;
+                state.userType = 'SELLER'
+            })
+
+
+            /****Sessions */
+            .addCase(sessionsList.pending, (state) => {
+                state.isSessionsLoading = true
+                state.sessions = []
+            })
+            .addCase(sessionsList.fulfilled, (state, actionPayload) => {
+                state.isSessionsLoading = false
+                state.sessions = actionPayload.payload
+            })
+            .addCase(sessionsList.rejected, (state, actionPayload) => {
+                state.isSessionsLoading = false;
+                state.sessions = []
+            })
+    },
+})
+
+
+export const { setSession, clearAuthError } = authSlice.actions
+
+export default authSlice.reducer
+

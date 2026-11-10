@@ -45,7 +45,8 @@ export interface IResetPassowordPayload{
 }
 
 export const authApi = {
-    login : (payload : loginPayload) => Axios.post<loginResponse>('/auth/login',payload).then((res) => res?.data),
+    // panel: this app only accepts platform staff accounts
+    login : (payload : loginPayload) => Axios.post<loginResponse>('/auth/login',{ ...payload, panel: 'PLATFORM' }).then((res) => res?.data),
     me : () => Axios.get<IUser>('/auth/me').then((res) => res?.data),
     logout : () => Axios.post<SuccessResponse>("/auth/logout").then(res => res?.data),
     updateCurrentUser : (payload : Partial<IUser>) => Axios.put<IUser>('/users/me',payload).then((res) => res?.data),

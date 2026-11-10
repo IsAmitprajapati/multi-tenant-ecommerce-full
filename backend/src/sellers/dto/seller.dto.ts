@@ -170,3 +170,35 @@ export class UpdateSellerDto {
   @IsOptional() @Type(() => Number) @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) @Max(50)
   commissionRate?: number;
 }
+
+/* ---------------------- Self-service application ---------------------- */
+
+/** Owner email = the signed-in account; ownerName/ownerPhone are the business contact person */
+export class SellerApplicationBusinessDto extends OmitType(SellerBusinessDto, ['ownerEmail'] as const) { }
+
+export class SellerApplicationKycDto {
+  /** Self-service sellers always upload documents (offline verification is admin-only) */
+  @IsIn(['UPLOAD'], { message: 'Upload your KYC documents' })
+  mode: 'UPLOAD';
+
+  @IsArray()
+  @ArrayUnique((d: SellerKycDocumentDto) => d.documentType, { message: 'Each document type can only be uploaded once' })
+  @ValidateNested({ each: true })
+  @Type(() => SellerKycDocumentDto)
+  documents: SellerKycDocumentDto[];
+}
+
+export class SellerApplicationDto {
+  @ValidateNested() @Type(() => SellerApplicationBusinessDto)
+  business: SellerApplicationBusinessDto;
+
+  @ValidateNested() @Type(() => SellerProfileDto)
+  profile: SellerProfileDto;
+
+  @ValidateNested() @Type(() => SellerApplicationKycDto)
+  kyc: SellerApplicationKycDto;
+
+  /** "I agree to the platform's seller terms" */
+  @IsBoolean() @IsIn([true], { message: 'Please accept the seller terms' })
+  acceptTerms: boolean;
+}

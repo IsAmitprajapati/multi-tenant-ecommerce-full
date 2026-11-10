@@ -8,7 +8,7 @@ import { EmailService } from '../email/email.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import { KycDocumentType } from '../generated/prisma/enums.js';
 import { ImageKitStorageService, type UploadKind } from './imagekit-storage.service.js';
-import { ListSellersQueryDto, OnboardSellerDto, SellerStatusActionDto, UpdateSellerDto } from './dto/seller.dto.js';
+import { ListSellersQueryDto, OnboardSellerDto, SellerApplicationDto, SellerStatusActionDto, UpdateSellerDto } from './dto/seller.dto.js';
 import { PermissionsService } from '../permissions/permissions.service.js';
 import { hasLevel } from '../permissions/permissions.constants.js';
 import {
@@ -19,6 +19,7 @@ import {
   SELLER_ADMIN_ROLE_NAME,
   SELLER_CATEGORIES,
   SLUG_REGEX,
+  type SellerCategoryKey,
 } from './sellers.constants.js';
 
 const INVITE_TTL = '7d';
@@ -85,6 +86,11 @@ export class SellersService {
   /** Customer store (storefront) base URL from .env CUSTOMER_STORE, e.g. https://marketplace.example.com */
   private get customerStoreUrl() {
     return (this.config.get<string>('CUSTOMER_STORE')?.trim() || 'http://localhost:3000').replace(/\/+$/, '');
+  }
+
+  /** Seller admin app base URL (links in emails) */
+  private get sellerAdminUrl() {
+    return (this.config.get<string>('SELLER_ADMIN_URL')?.trim() || 'http://localhost:3001').replace(/\/+$/, '');
   }
 
   /** Base for seller pages: <CUSTOMER_STORE>/seller/ */
@@ -174,23 +180,12 @@ export class SellersService {
     return { data: { url: this.storage.signedUrl(doc.filePath) } };
   }
 
-  async onboard(dto: OnboardSellerDto, actorId: string) {
-    const { business, profile, kyc } = dto;
-
-    // ---- uniqueness
-    if (await this.prisma.user.findUnique({ where: { email: business.ownerEmail }, select: { id: true } })) {
-      throw this.conflict('ownerEmail', 'An account with this owner email already exists');
-    }
-    const slugCheck = await this.slugAvailability(profile.slug);
-    if (!slugCheck.data.available) throw this.conflict('slug', slugCheck.data.reason ?? 'This page URL is not available');
-
-    const role = await this.prisma.role.findFirst({
-      where: { name: SELLER_ADMIN_ROLE_NAME, userType: 'SELLER', status: 'ACTIVE' },
-      select: { id: true },
-    });
-    if (!role) throw new InternalServerErrorException(`The "${SELLER_ADMIN_ROLE_NAME}" role is missing or inactive — run the seed`);
-
-    // ---- files (verified with ImageKit; nothing is uploaded through this server)
+  /** Checks logo + KYC files with ImageKit and that every required document is present. */
+  private async verifyFiles(
+    profile: { category: SellerCategoryKey; logoFileId?: string },
+    kyc: { mode: 'UPLOAD' | 'OFFLINE'; documents?: { documentType: KycDocumentType; fileId: string }[] },
+  ) {
+    // Nothing is uploaded through this server — files went straight to ImageKit
     const logo = profile.logoFileId ? await this.storage.verify(profile.logoFileId, 'logo') : null;
 
     let documents: { documentType: KycDocumentType; fileId: string; filePath: string; fileName: string; mimeType: string }[] = [];
@@ -208,7 +203,132 @@ export class SellersService {
         }),
       );
     }
+    return { logo, documents };
+  }
 
+  /* ======================= Seller self-service ======================= */
+
+  /** The signed-in seller's application / seller record (null before they apply). */
+  async getMyApplication(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { sellerId: true, userType: true } });
+    if (!user || user.userType !== 'SELLER') throw new ForbiddenException('Only seller accounts can do this');
+    if (!user.sellerId) return { data: null };
+    return this.findOne(user.sellerId);
+  }
+
+  /**
+   * Submit the seller's own application for review (status PENDING, KYC UNDER_REVIEW).
+   * If the platform rejected the KYC, the seller can fix details and submit again.
+   */
+  async submitApplication(userId: string, dto: SellerApplicationDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, fullName: true, userType: true, sellerId: true },
+    });
+    if (!user || user.userType !== 'SELLER') throw new ForbiddenException('Only seller accounts can apply');
+
+    const { business, profile, kyc } = dto;
+    const existing = user.sellerId
+      ? await this.prisma.seller.findUnique({ where: { id: user.sellerId }, select: { id: true, slug: true, ownerId: true, kycStatus: true, status: true } })
+      : null;
+
+    if (existing) {
+      if (existing.ownerId !== user.id) throw new ForbiddenException('Only the seller owner can submit the application');
+      if (existing.kycStatus !== 'REJECTED') {
+        throw new ConflictException(existing.status === 'ACTIVE' ? 'Your seller account is already approved' : 'Your application is already under review');
+      }
+    }
+
+    if (!existing || existing.slug !== profile.slug) {
+      const check = await this.slugAvailability(profile.slug);
+      if (!check.data.available) throw this.conflict('slug', check.data.reason ?? 'This page URL is not available');
+    }
+
+    const { logo, documents } = await this.verifyFiles(profile, kyc);
+    const category = SELLER_CATEGORIES.find((c) => c.key === profile.category)!;
+    const businessDetails = {
+      legalBusinessName: business.legalBusinessName,
+      businessType: business.businessType,
+      registeredAddress: business.registeredAddress,
+      gstNumber: business.gstNumber ?? null,
+      panNumber: business.panNumber ?? null,
+      contactPersonName: business.ownerName,
+      contactPersonMobile: business.ownerPhone,
+      contactEmail: user.email,
+    };
+    const sellerData = {
+      name: profile.name,
+      slug: profile.slug,
+      category: profile.category,
+      brandColor: profile.brandColor,
+      // Re-submitting without a new logo keeps the current one
+      ...(logo ? { logoUrl: logo.url, logoFileId: logo.fileId } : existing ? {} : { logoUrl: null, logoFileId: null }),
+      // Self-service sellers wait for platform review
+      status: 'PENDING' as const,
+      kycStatus: 'UNDER_REVIEW' as const,
+      kycOfflineReference: null,
+      commissionRate: category.commissionRate,
+    };
+
+    const sellerId = await this.prisma.$transaction(async (tx) => {
+      if (existing) {
+        // Re-submission after rejection: replace details and documents
+        await tx.sellerKycDocument.deleteMany({ where: { sellerId: existing.id } });
+        await tx.seller.update({
+          where: { id: existing.id },
+          data: {
+            ...sellerData,
+            businessDetails: { upsert: { create: businessDetails, update: businessDetails } },
+            kycDocuments: { create: documents },
+          },
+        });
+        return existing.id;
+      }
+      const seller = await tx.seller.create({
+        data: {
+          ...sellerData,
+          createdVia: 'SELF_SERVICE',
+          ownerId: user.id,
+          businessDetails: { create: businessDetails },
+          kycDocuments: { create: documents },
+        },
+        select: { id: true },
+      });
+      await tx.user.update({ where: { id: user.id }, data: { sellerId: seller.id } });
+      return seller.id;
+    }).catch((err: unknown) => {
+      if (this.uniqueViolationField(err) === 'slug') {
+        throw this.conflict('slug', 'This page URL was just taken by another seller — choose a different one');
+      }
+      throw err;
+    });
+
+    await this.emailService.sendSellerApplicationReceived(user.fullName, user.email, profile.name);
+
+    return {
+      success: true,
+      message: existing ? 'Application re-submitted for review' : 'Application submitted for review',
+      data: (await this.findOne(sellerId)).data,
+    };
+  }
+
+  async onboard(dto: OnboardSellerDto, actorId: string) {
+    const { business, profile, kyc } = dto;
+
+    // ---- uniqueness
+    if (await this.prisma.user.findUnique({ where: { email: business.ownerEmail }, select: { id: true } })) {
+      throw this.conflict('ownerEmail', 'An account with this owner email already exists');
+    }
+    const slugCheck = await this.slugAvailability(profile.slug);
+    if (!slugCheck.data.available) throw this.conflict('slug', slugCheck.data.reason ?? 'This page URL is not available');
+
+    const role = await this.prisma.role.findFirst({
+      where: { name: SELLER_ADMIN_ROLE_NAME, userType: 'SELLER', status: 'ACTIVE' },
+      select: { id: true },
+    });
+    if (!role) throw new InternalServerErrorException(`The "${SELLER_ADMIN_ROLE_NAME}" role is missing or inactive — run the seed`);
+
+    const { logo, documents } = await this.verifyFiles(profile, kyc);
     const category = SELLER_CATEGORIES.find((c) => c.key === profile.category)!;
 
     // ---- create everything atomically
@@ -375,8 +495,7 @@ export class SellersService {
       { userId },
       { secret: this.config.getOrThrow<string>('JWT_RESET_SECRET'), expiresIn: INVITE_TTL },
     );
-    const base = (this.config.get<string>('SELLER_ADMIN_URL') ?? 'http://localhost:3001').replace(/\/+$/, '');
-    const link = `${base}/auth/set-password?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
+    const link = `${this.sellerAdminUrl}/auth/set-password?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
     return this.emailService.sendSellerInvite(name, email, sellerName, link, INVITE_TTL_LABEL);
   }
 
@@ -417,6 +536,15 @@ export class SellersService {
           break;
       }
     });
+
+    // Let the seller know the outcome of their review
+    if (action === 'APPROVE' || action === 'REJECT') {
+      const s = await this.prisma.seller.findUnique({ where: { id }, select: { name: true, owner: { select: { fullName: true, email: true } } } });
+      if (s) {
+        if (action === 'APPROVE') await this.emailService.sendSellerApproved(s.owner.fullName, s.owner.email, s.name, this.sellerAdminUrl);
+        else await this.emailService.sendSellerRejected(s.owner.fullName, s.owner.email, s.name, this.sellerAdminUrl);
+      }
+    }
 
     const messages = { APPROVE: 'Seller approved', REJECT: 'KYC rejected', SUSPEND: 'Seller suspended', REACTIVATE: 'Seller reactivated' };
     return { success: true, message: messages[action], data: (await this.findOne(id)).data };

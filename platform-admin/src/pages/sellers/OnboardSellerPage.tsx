@@ -53,7 +53,7 @@ function Field({ label, htmlFor, error, hint, className, children }: {
     label: string; htmlFor?: string; error?: string; hint?: string; className?: string; children: React.ReactNode
 }) {
     return (
-        <div className={cn('grid content-start gap-1.5', className)}>
+        <div className={cn('grid min-w-0 content-start gap-1.5', className)}>
             <Label htmlFor={htmlFor} className='text-xs font-semibold text-muted-foreground'>{label}</Label>
             {children}
             {error ? <p className='text-xs text-destructive'>{error}</p> : hint && <p className='text-xs text-muted-foreground'>{hint}</p>}
@@ -313,7 +313,7 @@ const OnboardSellerPage = () => {
                                         value={business.panNumber} onChange={e => setB('panNumber', e.target.value.toUpperCase())} aria-invalid={!!errors.panNumber} />
                                 </Field>
                                 <Field label='Owner name' htmlFor='ownerName' error={errors.ownerName}>
-                                    <Input id='ownerName' className='h-10' placeholder='Ravi Kumar'
+                                    <Input id='ownerName' className='h-10' placeholder='Amit Prajapati'
                                         value={business.ownerName} onChange={e => setB('ownerName', e.target.value)} aria-invalid={!!errors.ownerName} />
                                 </Field>
                                 <Field label='Owner phone' htmlFor='ownerPhone' error={errors.ownerPhone}>

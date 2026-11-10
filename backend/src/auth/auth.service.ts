@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { CreateAuthDto } from './dto/create-auth.dto.js';
 import { UpdateAuthDto } from './dto/update-auth.dto.js';
 import { UsersService } from '../users/users.service.js';
@@ -11,6 +11,7 @@ import bcrypt from 'bcryptjs';
 import { randomInt } from 'crypto'
 import { EmailService } from '../email/email.service.js';
 import { PermissionsService } from '../permissions/permissions.service.js';
+import { type LoginPanel, SellerRegisterDto } from './dto/login.dto.js';
 
 export interface LoginContext {
   ipAddress?: string
@@ -33,7 +34,8 @@ export class AuthService {
   async login(
     email: string,
     password: string,
-    context: LoginContext = {}
+    context: LoginContext = {},
+    panel?: LoginPanel
   ) {
 
     /********Check User Exits in DB */
@@ -46,6 +48,9 @@ export class AuthService {
     if (user.status !== 'ACTIVE') {
       throw new ForbiddenException('This account is not active')
     }
+
+    /******Each app only accepts its own accounts */
+    await this.assertPanelAccess(user, panel)
 
     /***2FA is Enabled */
     if (user?.twoFactorEnabled) {
@@ -66,6 +71,51 @@ export class AuthService {
       ...token,
       userType: user.userType
     }
+  }
+
+  /** Platform admin app ↔ platform staff only; seller app ↔ seller users only (and not suspended sellers). */
+  private async assertPanelAccess(user: User, panel?: LoginPanel) {
+    if (!panel) return
+    if (panel === 'PLATFORM' && user.userType !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException("This account can't sign in to the platform admin console")
+    }
+    if (panel === 'SELLER') {
+      if (user.userType !== 'SELLER') {
+        throw new ForbiddenException("This account can't sign in to the seller dashboard")
+      }
+      if (user.sellerId) {
+        const seller = await this.prisma.seller.findUnique({ where: { id: user.sellerId }, select: { status: true } })
+        if (seller?.status === 'SUSPENDED') {
+          throw new ForbiddenException('This seller account is suspended. Contact platform support.')
+        }
+      }
+    }
+  }
+
+  /** Self-service seller signup: creates the owner account and signs them in. */
+  async registerSeller(dto: SellerRegisterDto, context: LoginContext = {}) {
+    if (await this.prisma.user.findUnique({ where: { email: dto.email }, select: { id: true } })) {
+      throw new ConflictException('An account with this email already exists — sign in instead')
+    }
+    const role = await this.prisma.role.findFirst({
+      where: { name: 'Seller Admin', userType: 'SELLER', status: 'ACTIVE' },
+      select: { id: true },
+    })
+    if (!role) throw new InternalServerErrorException('Seller signup is not available right now')
+
+    const user = await this.prisma.user.create({
+      data: {
+        email: dto.email,
+        fullName: dto.fullName,
+        phone: dto.phone,
+        passwordHash: await bcrypt.hash(dto.password, 10),
+        userType: 'SELLER',
+        roleId: role.id,
+      },
+    })
+
+    const token = await this.issueTokenPair(user, context)
+    return { ...token, userType: user.userType }
   }
 
   async issueTokenPair(
@@ -179,10 +229,19 @@ export class AuthService {
     /***Role + effective module permissions for UI gating */
     const access = await this.permissionsService.getEffectiveAccess(userId)
 
+    /***Seller users: the seller (business) they belong to */
+    const seller = rest.sellerId
+      ? await this.prisma.seller.findUnique({
+        where: { id: rest.sellerId },
+        select: { id: true, name: true, slug: true, logoUrl: true, brandColor: true, status: true, kycStatus: true, ownerId: true },
+      })
+      : null
+
     return {
       ...rest,
       role: access.role,
-      permissions: access.permissions
+      permissions: access.permissions,
+      seller: seller ? { ...seller, isOwner: seller.ownerId === userId } : null
     }
   }
 
@@ -626,27 +685,25 @@ export class AuthService {
 
   async resetPassowrd(email: string, resetToken: string, password: string) {
     if (!resetToken) {
-      throw new BadRequestException("Something went wrong")
+      throw new BadRequestException("This link is invalid or has expired")
     }
 
+    let decode: { userId?: string }
     try {
-      const decode = await this.jwtService.verifyAsync(resetToken, {
+      decode = await this.jwtService.verifyAsync(resetToken, {
         secret: this.config.getOrThrow<string>('JWT_RESET_SECRET'),
       })
-
-      if (!decode) {
-        throw new BadRequestException("Session will be expired.")
-      }
-
-      console.log("decode", decode)
-
-      const responseChangePassword = await this.usersServices.changePassword(decode.userId, {
-        password: password
-      })
-
-      return responseChangePassword
-    } catch (error) {
-      return error
+    } catch {
+      throw new BadRequestException("This link is invalid or has expired — request a new one")
     }
+
+    // Token must belong to the account being reset
+    const user = decode?.userId ? await this.usersServices.findById(decode.userId) : null
+    if (!user || (email && user.email.toLowerCase() !== email.trim().toLowerCase())) {
+      throw new BadRequestException("This link is invalid or has expired — request a new one")
+    }
+
+    return this.usersServices.changePassword(user.id, { password })
   }
+
 }

@@ -1,0 +1,75 @@
+import Axios from "@/lib/axios";
+import type { IUser, USER_TYPE } from "@/store/auth/authSlice";
+
+export interface loginPayload {
+    email : string;
+    password : string
+}
+export interface loginResponse {
+    accessToken : string;
+    refreshToken : string;
+    userType : USER_TYPE;
+
+    twoFactorToken? : null,
+    requiredsTwoFactor? : boolean,
+}
+
+export interface IVerifyEnablDisableTwoFactor{
+    otp : string
+}
+
+export interface IVerify2FALoginOtp {
+    otp : string
+    twoFactorToken : string
+}
+
+interface SuccessResponse {
+    success : true;
+    message? : string;
+}
+
+
+export interface ISessionPayload {
+    sessionId : string
+}
+
+export interface ForgotPasswordPayload {
+    email : string
+    otp? : string
+}
+
+export interface SellerRegisterPayload {
+    fullName : string
+    email : string
+    phone : string
+    password : string
+}
+
+export interface IResetPassowordPayload{
+ email : string;
+ password : string;
+ resetToken : string
+}
+
+export const authApi = {
+    // panel: this app only accepts seller accounts
+    login : (payload : loginPayload) => Axios.post<loginResponse>('/auth/login',{ ...payload, panel: 'SELLER' }).then((res) => res?.data),
+    registerSeller : (payload : SellerRegisterPayload) => Axios.post<loginResponse>('/auth/seller/register',payload).then((res) => res?.data),
+    me : () => Axios.get<IUser>('/auth/me').then((res) => res?.data),
+    logout : () => Axios.post<SuccessResponse>("/auth/logout").then(res => res?.data),
+    updateCurrentUser : (payload : Partial<IUser>) => Axios.put<IUser>('/users/me',payload).then((res) => res?.data),
+    changePassword : (payload : Partial<IUser>)=> Axios.put<SuccessResponse>('/users/change-password',payload).then((res) => res?.data),
+    twoFactorGenerateOtp : () => Axios.get('/auth/2fa-generate-otp').then((res)=>res.data),
+    verifyEnablDisableTwoFactor : (payload : IVerifyEnablDisableTwoFactor) => Axios.post('/auth/2fa-verify-enable',payload).then((res)=>res.data),
+    
+    Verify2FALoginOtp : (payload : IVerify2FALoginOtp) => Axios.post<loginResponse>('/auth/2fa-verify-login-otp',payload).then((res) => res?.data),
+
+    sessions : ()=> Axios.get('/auth/sessions').then((res)=>res.data),
+    sessionRevoke : (payload : ISessionPayload)=> Axios.post(`/auth/sessions/${payload?.sessionId}/revoke`).then((res)=>res.data),
+    sessionRevokeOthers : ()=>Axios.post('/auth/sessions/revoke-others').then(res => res.data),
+
+    forgotPassword : (payload : ForgotPasswordPayload) => Axios.post('/auth/forgot-password',payload).then(res => res.data),
+    forgotPasswordOtpVerify : (payload : ForgotPasswordPayload) => Axios.post('/auth/forgot-password-verify-otp',payload).then(res => res.data),
+    
+    resetPassword : (payload : IResetPassowordPayload) => Axios.post('/auth/reset-password',payload).then(res => res.data)
+}

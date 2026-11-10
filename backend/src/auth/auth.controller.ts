@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Ip, HttpStatus, Http
 import { AuthService } from './auth.service.js';
 import { CreateAuthDto } from './dto/create-auth.dto.js';
 import { UpdateAuthDto } from './dto/update-auth.dto.js';
-import { forgotPasswordDto, LoginDTO, resetPasswordDto } from './dto/login.dto.js';
+import { forgotPasswordDto, LoginDTO, resetPasswordDto, SellerRegisterDto } from './dto/login.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { type JwtAccessPayload } from './types/jwt-payload.type.js';
@@ -25,8 +25,21 @@ export class AuthController {
         browser: ua?.browser?.name,
         os: ua?.os?.name,
         device: ua?.device?.model
-      }
+      },
+      logintDto.panel
     );
+  }
+
+  /***Self-service seller signup (step 1): creates the account and signs in */
+  @Post('/seller/register')
+  @HttpCode(HttpStatus.CREATED)
+  registerSeller(@Body() dto: SellerRegisterDto, @Ip() ip: string, @ParsedUserAgent() ua: any) {
+    return this.authService.registerSeller(dto, {
+      ipAddress: ip,
+      browser: ua?.browser?.name,
+      os: ua?.os?.name,
+      device: ua?.device?.model
+    })
   }
 
   @Get('/me')

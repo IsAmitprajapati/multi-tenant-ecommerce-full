@@ -48,7 +48,7 @@ function Field({ label, htmlFor, error, hint, className, children }: {
     label: string; htmlFor?: string; error?: string; hint?: React.ReactNode; className?: string; children: React.ReactNode
 }) {
     return (
-        <div className={cn('grid content-start gap-1.5', className)}>
+        <div className={cn('grid min-w-0 content-start gap-1.5', className)}>
             <Label htmlFor={htmlFor} className='text-xs font-semibold text-muted-foreground'>{label}</Label>
             {children}
             {error ? <p className='text-xs text-destructive'>{error}</p> : hint && <p className='text-xs text-muted-foreground'>{hint}</p>}

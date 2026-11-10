@@ -123,8 +123,8 @@ export class UsersService {
   async getAdminUsers(query: ListAdminUsersQueryDto) {
     const users = await this.prisma.user.findMany({
       where: {
-        // Customers are managed in the Customers module, not Users & permissions
-        userType: query.userType && query.userType !== 'CUSTOMER' ? query.userType : { not: 'CUSTOMER' },
+        // Platform staff by default; seller users are shown per seller, customers in the Customers module
+        userType: query.userType && query.userType !== 'CUSTOMER' ? query.userType : 'PLATFORM_ADMIN',
         ...(query.userId && { id: query.userId }),
         ...(query.roleId && { roleId: query.roleId }),
         ...(query.status && { status: query.status }),
