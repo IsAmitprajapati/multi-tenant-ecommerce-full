@@ -47,6 +47,10 @@ model User {
 
   twoFactorOtps         TwoFactorOtp[]
 
+  roleId                String?   @map("role_id")
+  role                  Role?     @relation(fields: [roleId], references: [id], onDelete: SetNull)
+
+  @@index([roleId])
 
   @@map("users")            
 }
@@ -99,4 +103,49 @@ model TwoFactorOtp {
   @@index([expiresAt])
 
   @@map("two_factor_otp")
+}
+
+enum RoleStatus {
+  ACTIVE
+  INACTIVE
+}
+
+/// Access level a role has on a module. Levels are cumulative:
+/// NONE < VIEW < EDIT < MANAGE
+enum PermissionLevel {
+  NONE
+  VIEW
+  EDIT
+  MANAGE
+}
+
+model Role {
+  id            String      @id @default(cuid())
+  name          String      @unique
+  description   String?
+  /// System roles (Platform Admin) cannot be edited or deleted
+  isSystem      Boolean     @default(false) @map("is_system")
+  /// Which kind of user this role is for. Assigning the role sets users.user_type.
+  userType      UserType    @default(PLATFORM_ADMIN) @map("user_type")
+  status        RoleStatus  @default(ACTIVE)
+
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  permissions   RolePermission[]
+  users         User[]
+
+  @@map("roles")
+}
+
+model RolePermission {
+  id        String          @id @default(cuid())
+  roleId    String          @map("role_id")
+  role      Role            @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  /// Module key, see src/permissions/permissions.constants.ts
+  module    String
+  level     PermissionLevel @default(NONE)
+
+  @@unique([roleId, module])
+  @@map("role_permissions")
 }

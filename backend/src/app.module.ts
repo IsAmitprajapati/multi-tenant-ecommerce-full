@@ -7,6 +7,8 @@ import { AuthModule } from './auth/auth.module.js';
 import { UsersModule } from './users/users.module.js';
 import { GlobalPassportModule } from './common/passport/passport.module.js';
 import { EmailModule } from './email/email.module.js';
+import { PermissionsModule } from './permissions/permissions.module.js';
+import { RolesModule } from './roles/roles.module.js';
 
 @Module({
 
@@ -16,9 +18,11 @@ import { EmailModule } from './email/email.module.js';
     }),
     GlobalPassportModule,
     PrismaModule,
+    PermissionsModule,
     AuthModule,
     UsersModule,
     EmailModule,
+    RolesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

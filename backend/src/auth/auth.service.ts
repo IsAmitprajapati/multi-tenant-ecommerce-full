@@ -10,6 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import bcrypt from 'bcryptjs';
 import { randomInt } from 'crypto'
 import { EmailService } from '../email/email.service.js';
+import { PermissionsService } from '../permissions/permissions.service.js';
 
 export interface LoginContext {
   ipAddress?: string
@@ -25,7 +26,8 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
-    private readonly emailService: EmailService
+    private readonly emailService: EmailService,
+    private readonly permissionsService: PermissionsService
   ) { }
 
   async login(
@@ -35,14 +37,13 @@ export class AuthService {
   ) {
 
     /********Check User Exits in DB */
-    const user: any = await this.usersServices.findByEmail(email)
-    await this.passwordMatcheswithHash(user, password)
+    const user = await this.passwordMatcheswithHash(
+      await this.usersServices.findByEmail(email),
+      password
+    )
 
-    if (!user) {
-      throw new BadRequestException('Email not available')
-    }
     /******Check Status */
-    if (user!.status !== 'ACTIVE') {
+    if (user.status !== 'ACTIVE') {
       throw new ForbiddenException('This account is not active')
     }
 
@@ -148,16 +149,20 @@ export class AuthService {
   private async passwordMatcheswithHash(
     user: User | null,
     password: string
-  ): Promise<void> {
+  ): Promise<User> {
 
-    const hash = user?.passwordHash as string
-
-    const matches = await bcrypt.compare(password, hash)
-
-    if (!user || !matches) {
+    // Same message for unknown email and wrong password, so emails can't be enumerated
+    if (!user?.passwordHash || !password) {
       throw new BadRequestException('Invalid email or password')
     }
 
+    const matches = await bcrypt.compare(password, user.passwordHash)
+
+    if (!matches) {
+      throw new BadRequestException('Invalid email or password')
+    }
+
+    return user
   }
 
   async me(userId: string) {
@@ -166,9 +171,19 @@ export class AuthService {
         id: userId
       }
     })
+    if (!data) {
+      throw new UnauthorizedException('User no longer exists')
+    }
     const { passwordHash, twoFactorSecret, ...rest } = data
 
-    return rest
+    /***Role + effective module permissions for UI gating */
+    const access = await this.permissionsService.getEffectiveAccess(userId)
+
+    return {
+      ...rest,
+      role: access.role,
+      permissions: access.permissions
+    }
   }
 
   async refresh(

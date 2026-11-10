@@ -9,4 +9,5 @@ export function getAxiosErrorMessage(error : unknown,fallback:string) : string{
 
         if(typeof message === 'string') return message ?? fallback;
     }
+    return fallback
 }

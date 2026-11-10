@@ -1,58 +1,65 @@
 import TitleHeading from '@/components/Heading'
-import { Separator } from '@/components/ui/separator'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 import React from 'react'
 import { useLocation, useNavigate } from 'react-router'
 
-interface UserPermissionHeader {
-    children: React.ReactNode
+interface UserPermissionHeaderProps {
+    children?: React.ReactNode
+    /** Optional counts shown next to the tab labels */
+    counts?: { users?: number; roles?: number }
 }
-const UserPermissionHeader = ({ children }: UserPermissionHeader) => {
-    const navigate = useNavigate()
-    const location = useLocation()
 
-    const navigation = [
-        {
-            label: "User",
-            href: "/dashboard/users-permissions/user"
-        },
-        {
-            label: "Role",
-            href: "/dashboard/users-permissions/role"
-        }
-    ]
+const NAVIGATION = [
+    { key: 'users', label: 'Users', href: '/dashboard/users-permissions/user' },
+    { key: 'roles', label: 'Roles', href: '/dashboard/users-permissions/role' },
+] as const
+
+const UserPermissionHeader = ({ children, counts }: UserPermissionHeaderProps) => {
+    const navigate = useNavigate()
+    const { pathname } = useLocation()
+
+    const isRoles = pathname.startsWith('/dashboard/users-permissions/role')
+
     return (
         <div>
-            <div className='flex flex-col lg:flex-row items-center'>
+            <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
                 <TitleHeading
                     title='Users & permissions'
                     description='Platform admin users, roles, and per-module permissions'
                 />
-                {children}
+                {children && <div className='flex shrink-0 items-center gap-2'>{children}</div>}
             </div>
-            <Tabs className='gap-0'>
-                <TabsList className='mt-4 bg-transparent gap-x-3'>
-                    {
-                        navigation.map((item, index) => {
-                            const isActive = item.href === location.pathname
-                            return (
-                                <TabsTrigger 
-                                 value={item?.label} 
-                                 onClick={() => navigate(item.href)}
-                                 className={cn(
-                                    'text-base bg-transparent border-4 rounded-none py-5 cursor-pointer',
-                                    isActive && "bg-transparent border-b-primary text-primary"
-                                 )}
-                                >
-                                    {item.label}
-                                </TabsTrigger>
-                            )
-                        })
-                    }
-                </TabsList>
-                <Separator className='mt-2'/>
-            </Tabs>
+
+            <nav className='mt-5 flex gap-6 border-b' aria-label='Users and permissions sections'>
+                {NAVIGATION.map(item => {
+                    const isActive = item.key === 'roles' ? isRoles : !isRoles
+                    const count = counts?.[item.key]
+                    return (
+                        <button
+                            key={item.key}
+                            type='button'
+                            onClick={() => navigate(item.href)}
+                            aria-current={isActive ? 'page' : undefined}
+                            className={cn(
+                                '-mb-px flex cursor-pointer items-center gap-2 border-b-2 px-1 pb-2.5 text-sm font-semibold transition-colors',
+                                isActive
+                                    ? 'border-primary text-primary'
+                                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                            )}
+                        >
+                            {item.label}
+                            {typeof count === 'number' && (
+                                <span className={cn(
+                                    'rounded-full px-1.5 py-0.5 text-[11px] leading-none font-semibold',
+                                    isActive ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+                                )}>
+                                    {count}
+                                </span>
+                            )}
+                        </button>
+                    )
+                })}
+            </nav>
         </div>
     )
 }

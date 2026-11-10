@@ -1,33 +1,34 @@
-import React from 'react'
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from './ui/sidebar'
-import { BarChart3Icon, GalleryVerticalEnd, LayoutDashboardIcon, LayoutGridIcon, LogOut, MegaphoneIcon, Settings, ShieldCheckIcon, ShoppingBagIcon, Store, Truck, Users } from 'lucide-react'
+import { BarChart3Icon, LayoutDashboardIcon, LayoutGridIcon, LogOut, MegaphoneIcon, Settings, ShieldCheckIcon, ShoppingBagIcon, Store, Truck, Users } from 'lucide-react'
 import PlatfromLogo from '@/assets/platform-logo.png'
 import { useLocation, useNavigate } from 'react-router'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/hooks/use-store'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import { logoutUser } from '@/store/auth/authSlice'
+import { usePermission } from '@/hooks/use-permission'
+import type { PermissionModule } from '@/lib/permissions'
 
 const AppSidebar = () => {
     const navigate = useNavigate()
     const location = useLocation()
     const user = useAppSelector(state => state.auth.user)
     const dispatch = useAppDispatch()
+    const { can, isLoaded } = usePermission()
 
-
-    const SIDEBAR_NAV = [
-        { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboardIcon },
-        { href: "/dashboard/sellers", label: "Sellers", Icon: Store },
-        { href: "/dashboard/commision-payouts", label: "Commision & Payouts", Icon: Store },
-        { href: "/dashboard/global-catalog", label: "Global Catalog", Icon: LayoutGridIcon },
-        { href: "/dashboard/delivery-network", label: "Delivery Network", Icon: Truck },
-        { href: "/dashboard/customers", label: "Customers", Icon: Users },
-        { href: "/dashboard/orders", label: "Orders", Icon: ShoppingBagIcon },
-        { href: "/dashboard/support", label: "Supports", Icon: ShoppingBagIcon },
-        { href: "/dashboard/marketing", label: "Marketing", Icon: MegaphoneIcon },
-        { href: "/dashboard/reports", label: "Reports", Icon: BarChart3Icon },
-        { href: "/dashboard/users-permissions", label: "Users & Permissions", Icon: ShieldCheckIcon },
-        { href: "/dashboard/settings", label: "Settings", Icon: Settings },
+    const SIDEBAR_NAV: { href: string; label: string; Icon: typeof Store; module: PermissionModule }[] = [
+        { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboardIcon, module: "DASHBOARD" },
+        { href: "/dashboard/sellers", label: "Sellers", Icon: Store, module: "STORES" },
+        { href: "/dashboard/commision-payouts", label: "Commision & Payouts", Icon: Store, module: "COMMISSION_PAYOUTS" },
+        { href: "/dashboard/global-catalog", label: "Global Catalog", Icon: LayoutGridIcon, module: "GLOBAL_CATALOG" },
+        { href: "/dashboard/delivery-network", label: "Delivery Network", Icon: Truck, module: "DELIVERY_NETWORK" },
+        { href: "/dashboard/customers", label: "Customers", Icon: Users, module: "CUSTOMERS" },
+        { href: "/dashboard/orders", label: "Orders", Icon: ShoppingBagIcon, module: "ORDERS" },
+        { href: "/dashboard/support", label: "Supports", Icon: ShoppingBagIcon, module: "SUPPORT" },
+        { href: "/dashboard/marketing", label: "Marketing", Icon: MegaphoneIcon, module: "MARKETING" },
+        { href: "/dashboard/reports", label: "Reports", Icon: BarChart3Icon, module: "REPORTS" },
+        { href: "/dashboard/users-permissions", label: "Users & Permissions", Icon: ShieldCheckIcon, module: "USERS_PERMISSIONS" },
+        { href: "/dashboard/settings", label: "Settings", Icon: Settings, module: "SETTINGS" },
     ]
 
     const handleLogout = async () => {
@@ -48,8 +49,11 @@ const AppSidebar = () => {
                     <SidebarGroupContent>
                         <SidebarMenu>
                             {
-                                SIDEBAR_NAV.map((item, index) => {
-                                    const isActive = item.href === location.pathname
+                                SIDEBAR_NAV.filter(item => !isLoaded || can(item.module, 'VIEW')).map((item) => {
+                                    // Nested pages (e.g. /users-permissions/role) keep their section highlighted
+                                    const isActive = item.href === '/dashboard'
+                                        ? location.pathname === '/dashboard'
+                                        : location.pathname.startsWith(item.href)
                                     return (
                                         <SidebarMenuItem key={item?.href}>
                                             <SidebarMenuButton onClick={() => navigate(item.href)} className={cn(
@@ -83,7 +87,7 @@ const AppSidebar = () => {
                         <div className='min-w-0 flex-1'>
                             <div className='truncate text-sm font-semibold text-white'>{user?.fullName}</div>
                             <div className='truncate text-xs text-accent'>
-                                {user?.email}
+                                {user?.role?.name ?? 'No role assigned'}
                             </div>
                         </div>
                     </div>

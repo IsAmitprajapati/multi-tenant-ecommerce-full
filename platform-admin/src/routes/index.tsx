@@ -1,4 +1,5 @@
 import ProtectedRoute from "@/components/ProtectedRoute";
+import PermissionRoute from "@/components/PermissionRoute";
 import AuthLayouts from "@/layouts/AuthLayouts";
 import DashboardLayouts from "@/layouts/DashboardLayouts";
 import ProfileDetailsPage from "@/pages/account/ProfileDetailsPage";
@@ -12,9 +13,10 @@ import DashboardPage from "@/pages/dashboard/DashboardPage";
 import SellersPage from "@/pages/dashboard/sellers/SellersPage";
 import CreateUserPage from "@/pages/user-permissions/CreateUser";
 import RolesPage from "@/pages/user-permissions/RolesPage";
+import RoleFormPage from "@/pages/user-permissions/RoleFormPage";
 import UpdateUserPage from "@/pages/user-permissions/UpdateUserPage";
 import UsersPage from "@/pages/user-permissions/UsersPage";
-import { Route, Routes } from "react-router";
+import { Navigate, Route, Routes } from "react-router";
 
 export default function Routers() {
     return (
@@ -38,12 +40,19 @@ export default function Routers() {
                     <Route path="my-account" element={<ProfileDetailsPage />} />
 
                     {/***Users & Permissions */}
-                    <Route path="users-permissions">
-                        <Route index element={<UsersPage />} />
+                    <Route path="users-permissions" element={<PermissionRoute module="USERS_PERMISSIONS" level="VIEW" />}>
+                        <Route index element={<Navigate to="user" replace />} />
                         <Route path="user" element={<UsersPage />} />
-                        <Route path="user/create" element={<CreateUserPage />} />
-                        <Route path="user/edit" element={<UpdateUserPage />} />
                         <Route path="role" element={<RolesPage />} />
+                        <Route path="role/:roleId" element={<RoleFormPage />} />
+                        <Route element={<PermissionRoute module="USERS_PERMISSIONS" level="MANAGE" />}>
+                            <Route path="role/create" element={<RoleFormPage />} />
+                            <Route path="role/:roleId/edit" element={<RoleFormPage />} />
+                        </Route>
+                        <Route element={<PermissionRoute module="USERS_PERMISSIONS" level="EDIT" />}>
+                            <Route path="user/create" element={<CreateUserPage />} />
+                            <Route path="user/edit" element={<UpdateUserPage />} />
+                        </Route>
                     </Route>
                 </Route>
             </Route>

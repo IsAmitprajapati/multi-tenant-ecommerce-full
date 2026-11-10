@@ -2,11 +2,13 @@ import { authApi, type ForgotPasswordPayload, type IResetPassowordPayload, type 
 import { getAxiosErrorMessage } from '@/lib/api.error'
 import { storage } from '@/lib/storage'
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
-import type { PayloadAction } from '@reduxjs/toolkit'
+import type { PermissionMap } from '@/lib/permissions'
 
 export interface IRole {
     id: string
     name: string;
+    isSystem?: boolean;
+    userType?: string;
     createdAt?: Date;
     updatedAt?: Date;
 }
@@ -23,7 +25,8 @@ export interface IUser {
     twoFactorSecret?: boolean;
     password?: string;
     passwordUpdatedAt? : Date;
-    role?: IRole;
+    role?: IRole | null;
+    permissions?: PermissionMap;
     userType?: string;
     createdAt?: Date;
     updatedAt?: Date;
