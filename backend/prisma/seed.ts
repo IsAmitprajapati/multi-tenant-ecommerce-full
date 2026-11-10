@@ -38,18 +38,18 @@ const DEFAULT_ROLES: RoleSeed[] = [
     },
     {
         name: "Seller Admin",
-        description: "Store owner with full access to their store admin panel.",
+        description: "Seller owner with full access to the seller admin panel.",
         userType: 'SELLER',
         permissions: allOf('SELLER', 'MANAGE'),
     },
     {
         name: "Seller User",
-        description: "Store staff who run daily operations. No access to store settings or staff.",
+        description: "Seller staff who run daily operations. No access to settings or staff.",
         userType: 'SELLER',
         permissions: {
-            STORE_DASHBOARD: 'VIEW', STORE_PRODUCTS: 'EDIT', STORE_COLLECTIONS: 'EDIT', STORE_ORDERS: 'EDIT',
-            STORE_RETURNS: 'EDIT', STORE_CUSTOMERS: 'VIEW', STORE_DISCOUNTS: 'VIEW', STORE_DELIVERY: 'EDIT',
-            STORE_REVIEWS: 'EDIT', STORE_REPORTS: 'VIEW',
+            SELLER_DASHBOARD: 'VIEW', SELLER_PRODUCTS: 'EDIT', SELLER_COLLECTIONS: 'EDIT', SELLER_ORDERS: 'EDIT',
+            SELLER_RETURNS: 'EDIT', SELLER_CUSTOMERS: 'VIEW', SELLER_DISCOUNTS: 'VIEW', SELLER_DELIVERY: 'EDIT',
+            SELLER_REVIEWS: 'EDIT', SELLER_REPORTS: 'VIEW',
         },
     },
 ]
@@ -89,8 +89,17 @@ async function main() {
 
     console.log("Seeding the platform admin user")
 
-    const email = 'amitprj737@gmail.com'
-    const password = 'ChangeMe123!'
+    /***Initial Platform Admin — all values come from .env (SEED_ADMIN_*) */
+    const required = (key: string) => {
+        const v = process.env[key]?.trim()
+        if (!v) throw new Error(`${key} is missing in .env`)
+        return v
+    }
+    const email = required('SEED_ADMIN_EMAIL').toLowerCase()
+    // Only used when the account is first created; never overwrites an existing password
+    const password = required('SEED_ADMIN_PASSWORD')
+    const fullName = required('SEED_ADMIN_NAME')
+    const phone = process.env.SEED_ADMIN_PHONE?.trim() || null
 
     const passwordHash = await bcrypt.hash(password, 10)
     /***Seed */
@@ -104,11 +113,11 @@ async function main() {
         },
         create: {
             email,
-            fullName: "Amit Prajapati",
+            fullName,
             passwordHash,
             userType: 'PLATFORM_ADMIN',
             twoFactorEnabled: false,
-            phone: '9307961978',
+            phone,
             roleId: roleIds[SUPER_ADMIN_ROLE_NAME],
         }
     })

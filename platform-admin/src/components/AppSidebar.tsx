@@ -18,7 +18,7 @@ const AppSidebar = () => {
 
     const SIDEBAR_NAV: { href: string; label: string; Icon: typeof Store; module: PermissionModule }[] = [
         { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboardIcon, module: "DASHBOARD" },
-        { href: "/dashboard/sellers", label: "Sellers", Icon: Store, module: "STORES" },
+        { href: "/dashboard/sellers", label: "Sellers", Icon: Store, module: "SELLERS" },
         { href: "/dashboard/commision-payouts", label: "Commision & Payouts", Icon: Store, module: "COMMISSION_PAYOUTS" },
         { href: "/dashboard/global-catalog", label: "Global Catalog", Icon: LayoutGridIcon, module: "GLOBAL_CATALOG" },
         { href: "/dashboard/delivery-network", label: "Delivery Network", Icon: Truck, module: "DELIVERY_NETWORK" },

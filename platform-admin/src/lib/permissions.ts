@@ -5,7 +5,7 @@
 export const PERMISSION_MODULES = [
   // Platform admin
   { key: 'DASHBOARD', scope: 'PLATFORM', label: 'Dashboard', description: 'Platform overview and KPIs' },
-  { key: 'STORES', scope: 'PLATFORM', label: 'Stores', description: 'Seller stores and onboarding' },
+  { key: 'SELLERS', scope: 'PLATFORM', label: 'Sellers', description: 'Seller onboarding and KYC' },
   { key: 'COMMISSION_PAYOUTS', scope: 'PLATFORM', label: 'Commission & payouts', description: 'Commission rules, settlements and payouts' },
   { key: 'GLOBAL_CATALOG', scope: 'PLATFORM', label: 'Global catalog', description: 'Products, brands, attributes and tax' },
   { key: 'DELIVERY_NETWORK', scope: 'PLATFORM', label: 'Delivery network', description: 'Delivery agents, zones and KYC' },
@@ -17,19 +17,19 @@ export const PERMISSION_MODULES = [
   { key: 'USERS_PERMISSIONS', scope: 'PLATFORM', label: 'Users & permissions', description: 'Users, roles and access' },
   { key: 'SETTINGS', scope: 'PLATFORM', label: 'Settings', description: 'Platform configuration' },
 
-  // Seller / store admin
-  { key: 'STORE_DASHBOARD', scope: 'SELLER', label: 'Dashboard', description: 'Store overview' },
-  { key: 'STORE_PRODUCTS', scope: 'SELLER', label: 'Products', description: 'Products, variants and inventory' },
-  { key: 'STORE_COLLECTIONS', scope: 'SELLER', label: 'Collections & categories', description: 'Curated collections' },
-  { key: 'STORE_ORDERS', scope: 'SELLER', label: 'Orders', description: 'Store orders and fulfilment' },
-  { key: 'STORE_RETURNS', scope: 'SELLER', label: 'Returns & replacements', description: 'Return and replacement requests' },
-  { key: 'STORE_CUSTOMERS', scope: 'SELLER', label: 'Customers', description: 'Store customers and segments' },
-  { key: 'STORE_DISCOUNTS', scope: 'SELLER', label: 'Discounts', description: 'Coupons and offers' },
-  { key: 'STORE_DELIVERY', scope: 'SELLER', label: 'Delivery', description: 'Fees, slots and fleet' },
-  { key: 'STORE_REVIEWS', scope: 'SELLER', label: 'Reviews', description: 'Ratings and replies' },
-  { key: 'STORE_SETTINGS', scope: 'SELLER', label: 'Storefront settings', description: 'Store page, payments, taxes and policies' },
-  { key: 'STORE_STAFF_ROLES', scope: 'SELLER', label: 'Staff & roles', description: 'Store staff and their roles' },
-  { key: 'STORE_REPORTS', scope: 'SELLER', label: 'Reports', description: 'Store analytics' },
+  // Seller admin
+  { key: 'SELLER_DASHBOARD', scope: 'SELLER', label: 'Dashboard', description: 'Seller overview' },
+  { key: 'SELLER_PRODUCTS', scope: 'SELLER', label: 'Products', description: 'Products, variants and inventory' },
+  { key: 'SELLER_COLLECTIONS', scope: 'SELLER', label: 'Collections & categories', description: 'Curated collections' },
+  { key: 'SELLER_ORDERS', scope: 'SELLER', label: 'Orders', description: 'Seller orders and fulfilment' },
+  { key: 'SELLER_RETURNS', scope: 'SELLER', label: 'Returns & replacements', description: 'Return and replacement requests' },
+  { key: 'SELLER_CUSTOMERS', scope: 'SELLER', label: 'Customers', description: 'Seller customers and segments' },
+  { key: 'SELLER_DISCOUNTS', scope: 'SELLER', label: 'Discounts', description: 'Coupons and offers' },
+  { key: 'SELLER_DELIVERY', scope: 'SELLER', label: 'Delivery', description: 'Fees, slots and fleet' },
+  { key: 'SELLER_REVIEWS', scope: 'SELLER', label: 'Reviews', description: 'Ratings and replies' },
+  { key: 'SELLER_SETTINGS', scope: 'SELLER', label: 'Storefront settings', description: 'Seller page, payments, taxes and policies' },
+  { key: 'SELLER_STAFF_ROLES', scope: 'SELLER', label: 'Staff & roles', description: 'Seller staff and their roles' },
+  { key: 'SELLER_REPORTS', scope: 'SELLER', label: 'Reports', description: 'Seller analytics' },
 ] as const
 
 export type PermissionModule = (typeof PERMISSION_MODULES)[number]['key']
@@ -38,7 +38,7 @@ export type UserType = 'PLATFORM_ADMIN' | 'SELLER' | 'CUSTOMER' | 'DELIVERY_AGEN
 
 export const USER_TYPES: { value: UserType; label: string; panel: string }[] = [
     { value: 'PLATFORM_ADMIN', label: 'Platform', panel: 'Platform admin panel' },
-    { value: 'SELLER', label: 'Seller', panel: 'Store admin panel' },
+    { value: 'SELLER', label: 'Seller', panel: 'Seller admin panel' },
     { value: 'DELIVERY_AGENT', label: 'Delivery agent', panel: 'Delivery app' },
 ]
 

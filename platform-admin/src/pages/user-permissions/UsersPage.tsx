@@ -174,7 +174,7 @@ const UsersPage = () => {
                 )}
             </UserPermissionHeader>
 
-            <div className='mt-5 flex flex-col gap-3 md:flex-row md:items-center'>
+            <div className='flex flex-col gap-3 md:flex-row md:items-center'>
                 <div className='relative w-full md:max-w-xs'>
                     <SearchIcon className='absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground' />
                     <Input

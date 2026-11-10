@@ -49,6 +49,8 @@
 }
 
 :root {
+  /* Dashboard page background — shared by the page area and its sticky header so they always match */
+  --page: color-mix(in srgb, var(--accent) 50%, var(--background));
   --background: oklch(1 0 0);
   --foreground: oklch(0.220 0.031 161.800);
   --card: oklch(1 0 0);

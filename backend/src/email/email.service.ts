@@ -86,4 +86,46 @@ Amit Prajapati
             )
         }
     }
+
+    /** Sent when a platform admin onboards a seller: link to set their own password. */
+    async sendSellerInvite(
+        ownerName: string,
+        toEmail: string,
+        sellerName: string,
+        inviteLink: string,
+        validFor: string
+    ): Promise<boolean> {
+        this.logger.log("Sending seller invite")
+        try {
+            const { error } = await this.resend.emails.send({
+                from: this.fromEmail,
+                to: toEmail,
+                subject: `Your seller account for ${sellerName} is ready`,
+                text: `
+Hi ${ownerName},
+
+Your seller account for ${sellerName} has been created on our marketplace and is now live.
+
+Set your password to reach your seller dashboard:
+
+${inviteLink}
+
+This link is valid for ${validFor}. If it expires, use "Forgot password" on the sign-in page with this email address.
+
+Best regards,
+Amit Prajapati
+                `
+            })
+            if (error) {
+                this.logger.warn(`Resend Send Failed : ${error.message}`)
+                return false
+            }
+            return true
+        } catch (error) {
+            this.logger.warn(
+                `Resend Send Failed : ${(error as Error)?.message}`
+            )
+            return false
+        }
+    }
 }

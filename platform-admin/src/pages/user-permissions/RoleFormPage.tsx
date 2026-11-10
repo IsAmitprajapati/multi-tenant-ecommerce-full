@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { InfoIcon, LockIcon, PencilIcon, ShieldCheckIcon, UsersIcon } from 'lucide-react'
-import TitleHeading from '@/components/Heading'
+import PageHeader from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -186,9 +186,9 @@ const RoleFormPage = () => {
                 : (role?.description || 'Permissions granted to members of this role.')
 
     return (
-        <form onSubmit={handleSubmit} className='flex flex-col lg:h-full lg:min-h-0'>
-            <div className='flex shrink-0 flex-wrap items-center justify-between gap-3'>
-                <TitleHeading title={title} description={description_} back />
+        // Desktop: exactly fills the page area (viewport − 64px top bar − 3rem padding) so only the matrix scrolls
+        <form onSubmit={handleSubmit} className='flex flex-col lg:h-[calc(100svh-64px-3rem)] lg:min-h-0'>
+            <PageHeader title={title} description={description_} back className='shrink-0' actions={<>
                 {!readOnly && (
                     <div className='flex items-center gap-2'>
                         <Button type='button' variant='outline' className='h-10 cursor-pointer' disabled={isSaving}
@@ -211,9 +211,9 @@ const RoleFormPage = () => {
                         )}
                     </div>
                 )}
-            </div>
+            </>} />
 
-            <div className='mt-6 grid gap-6 lg:min-h-0 lg:flex-1 lg:grid-cols-3'>
+            <div className='grid gap-6 lg:min-h-0 lg:flex-1 lg:grid-cols-3'>
                 {/* Left: role details (stays put) */}
                 <div className='grid content-start gap-6 lg:min-h-0 lg:overflow-y-auto'>
                     <Card>

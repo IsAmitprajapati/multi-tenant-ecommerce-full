@@ -7,15 +7,17 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/s
 import { useAppSelector } from '@/hooks/use-store'
 import { SearchIcon, User2Icon } from 'lucide-react'
 import { Link, Outlet } from 'react-router'
+import { PAGE_SCROLL_ID } from '@/components/PageHeader'
 
 const DashboardLayouts = () => {
   const user = useAppSelector(state => state?.auth?.user)
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
-        <main className='bg-accent/50'>
-          <header className="flex h-16  shrink-0 items-center gap-2 border-b px-4 bg-white">
+      <SidebarInset className='h-svh overflow-hidden'>
+        {/* App shell: top bar fixed, only the page area scrolls */}
+        <main className='flex h-full min-h-0 flex-col bg-(--page)'>
+          <header className="z-40 flex h-16 shrink-0 items-center gap-2 border-b bg-white px-4">
             <SidebarTrigger className="-ml-1" />
             <Separator
               orientation='vertical'
@@ -51,8 +53,10 @@ const DashboardLayouts = () => {
 
             </div>
           </header>
-          <div className='p-4 lg:p-6 min-h-[calc(100vh-64px)] h-[calc(100vh-64px)] container mx-auto'>
-            <Outlet />
+          <div id={PAGE_SCROLL_ID} className='min-h-0 flex-1 overflow-y-auto'>
+            <div className='container mx-auto p-4 lg:p-6'>
+              <Outlet />
+            </div>
           </div>
         </main>
       </SidebarInset>

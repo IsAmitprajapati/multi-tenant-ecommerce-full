@@ -26,82 +26,88 @@ enum UserStatus {
 }
 
 model User {
-  id                    String @id @default(cuid())
-  email                 String @unique
-  phone                 String?
-  passwordHash          String @map("password_hash")
-  fullName              String @map("full_name")
-  userType              UserType @map("user_type")
-  status                UserStatus @default(ACTIVE)
-  twoFactorEnabled      Boolean @default(false) @map("two_factor-enabled")
-  twoFactorSecret       String?   @map("two_factor_secret")
-  profileImage          String? @map("profile_image")
+  id               String     @id @default(cuid())
+  email            String     @unique
+  phone            String?
+  passwordHash     String     @map("password_hash")
+  fullName         String     @map("full_name")
+  userType         UserType   @map("user_type")
+  status           UserStatus @default(ACTIVE)
+  twoFactorEnabled Boolean    @default(false) @map("two_factor-enabled")
+  twoFactorSecret  String?    @map("two_factor_secret")
+  profileImage     String?    @map("profile_image")
 
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  passwordUpdatedAt     DateTime @default(now()) @map("password_updated_at")
+  passwordUpdatedAt DateTime @default(now()) @map("password_updated_at")
 
-  passwordResetOtps     PasswordResetOtp[]
-  sessions              UserSession[]
+  passwordResetOtps PasswordResetOtp[]
+  sessions          UserSession[]
 
-  twoFactorOtps         TwoFactorOtp[]
+  twoFactorOtps TwoFactorOtp[]
 
-  roleId                String?   @map("role_id")
-  role                  Role?     @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  roleId String? @map("role_id")
+  role   Role?   @relation(fields: [roleId], references: [id], onDelete: SetNull)
+
+  /// Seller users (owner + staff) belong to exactly one seller
+  sellerId             String?             @map("seller_id")
+  seller               Seller?             @relation("SellerUsers", fields: [sellerId], references: [id], onDelete: SetNull)
+  ownedSellers         Seller[]            @relation("SellerOwner")
+  createdSellers       Seller[]            @relation("SellerCreatedBy")
+  reviewedKycDocuments SellerKycDocument[]
 
   @@index([roleId])
-
-  @@map("users")            
+  @@index([sellerId])
+  @@map("users")
 }
 
 model PasswordResetOtp {
-  id              String  @id @default(cuid())
-  userId          String  @map("user_id")
-  user            User    @relation(fields: [userId], references: [id],onDelete: Cascade)
-  codeHash        String   @map("code_hash")
-  expiresAt       DateTime @map("expires_at")
-  consumedAt      DateTime? @map("consumed_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
+  id         String    @id @default(cuid())
+  userId     String    @map("user_id")
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash   String    @map("code_hash")
+  expiresAt  DateTime  @map("expires_at")
+  consumedAt DateTime? @map("consumed_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
 
   @@map("password_reset_otps")
 }
 
 model UserSession {
-  id            String    @id @default(cuid())
-  userId          String  @map("user_id")
-  user            User    @relation(fields: [userId], references: [id],onDelete: Cascade)
-  deviceLabel     String? @map("device_label")
-  ipAddress       String?  @map("ip_address")
-  refreshTokenHash String @map("refresh_token_hash")
-  createdAt         DateTime  @default(now()) @map("created_at")
-  lastActiveAt      DateTime  @default(now()) @map("last_active_at")
-  expiresAt         DateTime  @map("expires_at")
-  revokedAt         DateTime?  @map("revoked_at")
+  id               String    @id @default(cuid())
+  userId           String    @map("user_id")
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceLabel      String?   @map("device_label")
+  ipAddress        String?   @map("ip_address")
+  refreshTokenHash String    @map("refresh_token_hash")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  lastActiveAt     DateTime  @default(now()) @map("last_active_at")
+  expiresAt        DateTime  @map("expires_at")
+  revokedAt        DateTime? @map("revoked_at")
 
-  os            String? @map("os")
-  device        String? @map("device")
-  browser       String? @map("browser")
+  os      String? @map("os")
+  device  String? @map("device")
+  browser String? @map("browser")
 
   @@map("user_sessions")
 }
 
 model TwoFactorOtp {
-  id       String @id @default(cuid())
-  userId          String  @map("user_id")
-  user            User    @relation(fields: [userId], references: [id],onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  otpHash       String @map("otp_hash")
-  expiresAt     DateTime @map("expires_at")
+  otpHash   String   @map("otp_hash")
+  expiresAt DateTime @map("expires_at")
 
-  attempts      Int   @default(0)
-  verifiedAt    DateTime?
+  attempts   Int       @default(0)
+  verifiedAt DateTime?
 
-  createdAt       DateTime  @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@index([userId])
   @@index([expiresAt])
-
   @@map("two_factor_otp")
 }
 
@@ -120,32 +126,151 @@ enum PermissionLevel {
 }
 
 model Role {
-  id            String      @id @default(cuid())
-  name          String      @unique
-  description   String?
+  id          String     @id @default(cuid())
+  name        String     @unique
+  description String?
   /// System roles (Platform Admin) cannot be edited or deleted
-  isSystem      Boolean     @default(false) @map("is_system")
+  isSystem    Boolean    @default(false) @map("is_system")
   /// Which kind of user this role is for. Assigning the role sets users.user_type.
-  userType      UserType    @default(PLATFORM_ADMIN) @map("user_type")
-  status        RoleStatus  @default(ACTIVE)
+  userType    UserType   @default(PLATFORM_ADMIN) @map("user_type")
+  status      RoleStatus @default(ACTIVE)
 
-  createdAt     DateTime    @default(now()) @map("created_at")
-  updatedAt     DateTime    @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  permissions   RolePermission[]
-  users         User[]
+  permissions RolePermission[]
+  users       User[]
 
   @@map("roles")
 }
 
 model RolePermission {
-  id        String          @id @default(cuid())
-  roleId    String          @map("role_id")
-  role      Role            @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  id     String          @id @default(cuid())
+  roleId String          @map("role_id")
+  role   Role            @relation(fields: [roleId], references: [id], onDelete: Cascade)
   /// Module key, see src/permissions/permissions.constants.ts
-  module    String
-  level     PermissionLevel @default(NONE)
+  module String
+  level  PermissionLevel @default(NONE)
 
   @@unique([roleId, module])
   @@map("role_permissions")
+}
+
+/**
+ * ============================ Sellers ============================
+ */
+
+enum SellerStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+enum KycStatus {
+  PENDING
+  UNDER_REVIEW
+  VERIFIED
+  REJECTED
+}
+
+enum SellerCreatedVia {
+  SELF_SERVICE
+  ADMIN_INITIATED
+}
+
+enum BusinessType {
+  SOLE_PROPRIETORSHIP
+  PARTNERSHIP
+  LLP
+  PRIVATE_LIMITED
+  PUBLIC_LIMITED
+  HUF
+  OTHER
+}
+
+enum KycDocumentType {
+  AADHAAR
+  PAN
+  BUSINESS_REGISTRATION_CERTIFICATE
+  FSSAI
+  OTHER
+}
+
+enum KycDocumentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model Seller {
+  id                  String           @id @default(cuid())
+  name                String
+  /// Public page: marketplace.platform.com/seller/<slug>
+  slug                String           @unique
+  /// Category key, see src/sellers/sellers.constants.ts
+  category            String
+  /// ImageKit public URL + fileId of the seller logo
+  logoUrl             String?          @map("logo_url")
+  logoFileId          String?          @map("logo_file_id")
+  /// tenant-brand accent color (hex)
+  brandColor          String           @map("brand_color")
+  status              SellerStatus     @default(PENDING)
+  kycStatus           KycStatus        @default(PENDING) @map("kyc_status")
+  /// Set when KYC was verified outside the platform (in person / other process)
+  kycOfflineReference String?          @map("kyc_offline_reference")
+  /// Defaults from the category; adjustable later in Commission & payouts
+  commissionRate      Decimal          @map("commission_rate") @db.Decimal(5, 2)
+  createdVia          SellerCreatedVia @map("created_via")
+
+  ownerId     String  @map("owner_id")
+  owner       User    @relation("SellerOwner", fields: [ownerId], references: [id])
+  createdById String? @map("created_by_id")
+  createdBy   User?   @relation("SellerCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  businessDetails SellerBusinessDetails?
+  kycDocuments    SellerKycDocument[]
+  users           User[]                 @relation("SellerUsers")
+
+  @@index([status])
+  @@index([ownerId])
+  @@map("sellers")
+}
+
+model SellerBusinessDetails {
+  id                  String       @id @default(cuid())
+  sellerId            String       @unique @map("seller_id")
+  seller              Seller       @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  legalBusinessName   String       @map("legal_business_name")
+  businessType        BusinessType @map("business_type")
+  registeredAddress   String       @map("registered_address")
+  gstNumber           String?      @map("gst_number")
+  panNumber           String?      @map("pan_number")
+  contactPersonName   String       @map("contact_person_name")
+  contactPersonMobile String       @map("contact_person_mobile")
+  contactEmail        String       @map("contact_email")
+
+  @@map("seller_business_details")
+}
+
+model SellerKycDocument {
+  id           String            @id @default(cuid())
+  sellerId     String            @map("seller_id")
+  seller       Seller            @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  documentType KycDocumentType   @map("document_type")
+  /// ImageKit private file — only reachable through short-lived signed URLs
+  fileId       String            @map("file_id")
+  filePath     String            @map("file_path")
+  fileName     String            @map("file_name")
+  mimeType     String            @map("mime_type")
+  status       KycDocumentStatus @default(PENDING)
+  reviewedById String?           @map("reviewed_by_id")
+  reviewedBy   User?             @relation(fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt   DateTime?         @map("reviewed_at")
+  uploadedAt   DateTime          @default(now()) @map("uploaded_at")
+
+  @@index([sellerId])
+  @@map("seller_kyc_documents")
 }

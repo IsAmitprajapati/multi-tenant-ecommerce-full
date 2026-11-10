@@ -9,6 +9,7 @@ import { GlobalPassportModule } from './common/passport/passport.module.js';
 import { EmailModule } from './email/email.module.js';
 import { PermissionsModule } from './permissions/permissions.module.js';
 import { RolesModule } from './roles/roles.module.js';
+import { SellersModule } from './sellers/sellers.module.js';
 
 @Module({
 
@@ -23,6 +24,7 @@ import { RolesModule } from './roles/roles.module.js';
     UsersModule,
     EmailModule,
     RolesModule,
+    SellersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

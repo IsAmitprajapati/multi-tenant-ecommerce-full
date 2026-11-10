@@ -1,4 +1,4 @@
-import TitleHeading from '@/components/Heading'
+import PageHeader from '@/components/PageHeader'
 import { cn } from '@/lib/utils'
 import React from 'react'
 import { useLocation, useNavigate } from 'react-router'
@@ -21,16 +21,12 @@ const UserPermissionHeader = ({ children, counts }: UserPermissionHeaderProps) =
     const isRoles = pathname.startsWith('/dashboard/users-permissions/role')
 
     return (
-        <div>
-            <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
-                <TitleHeading
-                    title='Users & permissions'
-                    description='Platform admin users, roles, and per-module permissions'
-                />
-                {children && <div className='flex shrink-0 items-center gap-2'>{children}</div>}
-            </div>
-
-            <nav className='mt-5 flex gap-6 border-b' aria-label='Users and permissions sections'>
+        <PageHeader
+            title='Users & permissions'
+            description='Platform admin users, roles, and per-module permissions'
+            actions={children}
+        >
+            <nav className='flex gap-6 border-b' aria-label='Users and permissions sections'>
                 {NAVIGATION.map(item => {
                     const isActive = item.key === 'roles' ? isRoles : !isRoles
                     const count = counts?.[item.key]
@@ -60,7 +56,7 @@ const UserPermissionHeader = ({ children, counts }: UserPermissionHeaderProps) =
                     )
                 })}
             </nav>
-        </div>
+        </PageHeader>
     )
 }
 

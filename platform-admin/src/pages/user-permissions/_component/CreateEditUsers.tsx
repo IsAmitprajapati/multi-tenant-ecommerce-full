@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { ShieldCheckIcon, UserIcon } from 'lucide-react'
-import TitleHeading from '@/components/Heading'
+import PageHeader from '@/components/PageHeader'
 import PasswordInput from '@/components/PasswordInput'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -138,16 +138,14 @@ const CreateEditUsers = () => {
 
     return (
         <div className='pb-10'>
-            <div className='flex flex-wrap items-center justify-between gap-3'>
-                <TitleHeading
+            <PageHeader
                     title={isEdit ? 'Edit user' : 'Add user'}
                     description={isEdit ? 'Update account details and role.' : 'Create an account and choose the role that controls their access.'}
-                    back
-                />
-                {existing && <StatusBadge status={existing.status} />}
-            </div>
+                back
+                actions={existing && <StatusBadge status={existing.status} />}
+            />
 
-            <form onSubmit={handleSubmit} className='mt-6 grid gap-6 lg:grid-cols-3'>
+            <form onSubmit={handleSubmit} className='grid gap-6 lg:grid-cols-3'>
                 <div className='grid gap-6 lg:col-span-2'>
                     <Card>
                         <CardHeader className='border-b'>

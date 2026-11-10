@@ -195,7 +195,7 @@ const RolesPage = () => {
                 )}
             </UserPermissionHeader>
 
-            <div className='mt-5'>
+            <div>
                 <div className='relative w-full md:max-w-xs'>
                     <SearchIcon className='absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground' />
                     <Input

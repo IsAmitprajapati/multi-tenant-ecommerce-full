@@ -10,7 +10,8 @@ import Verify2AaOTP from "@/pages/auth/Verify2FaOtp";
 import VerifyForgotOtpPage from "@/pages/auth/VerifyForgotOtp";
 import CommisionPayoutPages from "@/pages/dashboard/commision-payouts/CommisionPayoutPages";
 import DashboardPage from "@/pages/dashboard/DashboardPage";
-import SellersPage from "@/pages/dashboard/sellers/SellersPage";
+import SellersPage from "@/pages/sellers/SellersPage";
+import OnboardSellerPage from "@/pages/sellers/OnboardSellerPage";
 import CreateUserPage from "@/pages/user-permissions/CreateUser";
 import RolesPage from "@/pages/user-permissions/RolesPage";
 import RoleFormPage from "@/pages/user-permissions/RoleFormPage";
@@ -35,7 +36,12 @@ export default function Routers() {
             <Route element={<ProtectedRoute />}>
                 <Route path="dashboard" element={<DashboardLayouts />}>
                     <Route index element={<DashboardPage />} />
-                    <Route path="sellers" element={<SellersPage />} />
+                    <Route path="sellers" element={<PermissionRoute module="SELLERS" level="VIEW" />}>
+                        <Route index element={<SellersPage />} />
+                        <Route element={<PermissionRoute module="SELLERS" level="EDIT" />}>
+                            <Route path="onboard" element={<OnboardSellerPage />} />
+                        </Route>
+                    </Route>
                     <Route path="commision-payouts" element={<CommisionPayoutPages />} />
                     <Route path="my-account" element={<ProfileDetailsPage />} />
 
