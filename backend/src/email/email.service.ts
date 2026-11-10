@@ -188,4 +188,22 @@ Best regards,
 Amit Prajapati
 `)
     }
+
+    /** A seller added a staff member — link to set their password */
+    sendSellerStaffInvite(name: string, toEmail: string, sellerName: string, roleName: string, inviteLink: string, validFor: string) {
+        this.logger.log("Sending seller staff invite")
+        return this.sendText(toEmail, `You've been added to ${sellerName}`, `
+Hi ${name},
+
+You've been added to the ${sellerName} seller dashboard as ${roleName}.
+
+Set your password to get started:
+${inviteLink}
+
+This link is valid for ${validFor}. If it expires, ask your admin to resend the invite, or use "Forgot password" on the sign-in page.
+
+Best regards,
+Amit Prajapati
+`)
+    }
 }

@@ -98,7 +98,7 @@ export class AuthService {
       throw new ConflictException('An account with this email already exists — sign in instead')
     }
     const role = await this.prisma.role.findFirst({
-      where: { name: 'Seller Admin', userType: 'SELLER', status: 'ACTIVE' },
+      where: { name: 'Seller Admin', userType: 'SELLER', status: 'ACTIVE', sellerId: null },
       select: { id: true },
     })
     if (!role) throw new InternalServerErrorException('Seller signup is not available right now')

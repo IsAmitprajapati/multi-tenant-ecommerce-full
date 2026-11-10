@@ -18,6 +18,10 @@ import ApplicationStatusPage from "@/pages/apply/ApplicationStatusPage";
 import DashboardPage from "@/pages/dashboard/DashboardPage";
 import ProfileDetailsPage from "@/pages/account/ProfileDetailsPage";
 import ComingSoonPage from "@/pages/ComingSoonPage";
+import StaffPage from "@/pages/staff/StaffPage";
+import StaffFormPage from "@/pages/staff/StaffFormPage";
+import StaffDetailPage from "@/pages/staff/StaffDetailPage";
+import RoleDetailPage from "@/pages/staff/RoleDetailPage";
 import type { PermissionModule } from "@/lib/permissions";
 import { BrandLogo } from "@/components/brand/SiteHeader";
 
@@ -32,7 +36,6 @@ const MODULE_PAGES: { path: string; module: PermissionModule; title: string; des
     { path: "delivery", module: "SELLER_DELIVERY", title: "Delivery", description: "Delivery fees, time slots and your own fleet." },
     { path: "reviews", module: "SELLER_REVIEWS", title: "Reviews", description: "Ratings and replies from customers." },
     { path: "settings", module: "SELLER_SETTINGS", title: "Seller settings", description: "Seller page, business hours, payments, taxes and policies." },
-    { path: "staff", module: "SELLER_STAFF_ROLES", title: "Staff & roles", description: "Invite staff and control what each role can do." },
     { path: "reports", module: "SELLER_REPORTS", title: "Reports", description: "Sales, inventory, returns and customer analytics." },
 ]
 
@@ -70,6 +73,15 @@ export default function Routers() {
                     <Route path="dashboard" element={<DashboardLayouts />}>
                         <Route index element={<PermissionRoute module="SELLER_DASHBOARD"><DashboardPage /></PermissionRoute>} />
                         <Route path="my-account" element={<ProfileDetailsPage />} />
+                        <Route path="staff" element={<PermissionRoute module="SELLER_STAFF_ROLES" />}>
+                            <Route index element={<StaffPage />} />
+                            <Route path="roles/:roleId" element={<RoleDetailPage />} />
+                            <Route path=":staffId" element={<StaffDetailPage />} />
+                            <Route element={<PermissionRoute module="SELLER_STAFF_ROLES" level="EDIT" />}>
+                                <Route path="new" element={<StaffFormPage />} />
+                                <Route path=":staffId/edit" element={<StaffFormPage />} />
+                            </Route>
+                        </Route>
                         {MODULE_PAGES.map(p => (
                             <Route key={p.path} path={p.path}
                                 element={<PermissionRoute module={p.module}><ComingSoonPage title={p.title} description={p.description} /></PermissionRoute>} />

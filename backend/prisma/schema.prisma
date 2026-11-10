@@ -138,9 +138,14 @@ model Role {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  /// null = platform role or shared seller role (e.g. Seller Admin); set = custom role created by that seller
+  sellerId String? @map("seller_id")
+  seller   Seller? @relation("SellerRoles", fields: [sellerId], references: [id], onDelete: Cascade)
+
   permissions RolePermission[]
   users       User[]
 
+  @@index([sellerId])
   @@map("roles")
 }
 
@@ -233,6 +238,7 @@ model Seller {
   businessDetails SellerBusinessDetails?
   kycDocuments    SellerKycDocument[]
   users           User[]                 @relation("SellerUsers")
+  roles           Role[]                 @relation("SellerRoles")
 
   @@index([status])
   @@index([ownerId])

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PermissionLevel } from '../generated/prisma/enums.js';
-import { moduleKeysForUserType, PERMISSION_MODULE_KEYS, type PermissionModule } from './permissions.constants.js';
+import { capLevel, moduleKeysForUserType, PERMISSION_MODULE_KEYS, type PermissionModule } from './permissions.constants.js';
 
 export type PermissionMap = Record<PermissionModule, PermissionLevel>;
 
@@ -53,13 +53,13 @@ export class PermissionsService {
     // System role (Platform Admin) always has full access, even for modules added later.
     const permissions = this.emptyMap();
     if (role.isSystem) {
-      allowed.forEach((m) => { permissions[m as PermissionModule] = 'MANAGE'; });
+      allowed.forEach((m) => { permissions[m as PermissionModule] = capLevel(m, 'MANAGE'); });
       return { role: summary(role), permissions };
     }
 
     for (const p of role.permissions) {
       if (allowed.has(p.module)) {
-        permissions[p.module as PermissionModule] = p.level;
+        permissions[p.module as PermissionModule] = capLevel(p.module, p.level);
       }
     }
 

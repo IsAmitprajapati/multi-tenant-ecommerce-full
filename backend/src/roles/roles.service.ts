@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import { RoleStatus, UserType } from '../generated/prisma/enums.js';
 import { CreateRoleDto, ListRolesQueryDto, RolePermissionDto, UpdateRoleDto } from './dto/role.dto.js';
-import { moduleKeysForUserType, PERMISSION_MODULES } from '../permissions/permissions.constants.js';
+import { capLevel, moduleKeysForUserType, PERMISSION_MODULES } from '../permissions/permissions.constants.js';
 
 const roleSelect = {
   id: true,
@@ -33,7 +33,7 @@ export class RolesService {
       usersCount: _count.users,
       permissions: moduleKeysForUserType(role.userType).map((module) => ({
         module,
-        level: role.isSystem ? 'MANAGE' : (byModule.get(module) ?? 'NONE'),
+        level: capLevel(module, role.isSystem ? 'MANAGE' : (byModule.get(module) ?? 'NONE')),
       })),
     };
   }
@@ -41,7 +41,7 @@ export class RolesService {
   /** One row per module valid for the user type; modules from other panels are dropped. */
   private normalizePermissions(userType: UserType, perms: RolePermissionDto[] = []) {
     const byModule = new Map(perms.map((p) => [p.module, p.level]));
-    return moduleKeysForUserType(userType).map((module) => ({ module, level: byModule.get(module) ?? 'NONE' }));
+    return moduleKeysForUserType(userType).map((module) => ({ module, level: capLevel(module, byModule.get(module) ?? 'NONE') }));
   }
 
   private async assertNameAvailable(name: string, exceptId?: string) {
@@ -61,6 +61,8 @@ export class RolesService {
       where: {
         // Customers aren't managed from Users & permissions
         userType: { not: 'CUSTOMER' },
+        // Seller-created roles are managed by each seller (Staff & roles), not here
+        sellerId: null,
         ...(query.search && { name: { contains: query.search, mode: 'insensitive' } }),
         ...(query.status && { status: query.status }),
       },
@@ -72,7 +74,7 @@ export class RolesService {
   }
 
   async findOne(id: string) {
-    const role = await this.prisma.role.findUnique({ where: { id }, select: roleSelect });
+    const role = await this.prisma.role.findFirst({ where: { id, sellerId: null }, select: roleSelect });
     if (!role || role.userType === 'CUSTOMER') throw new NotFoundException('Role not found');
     return { data: this.serialize(role) };
   }
@@ -96,8 +98,8 @@ export class RolesService {
   }
 
   async update(id: string, dto: UpdateRoleDto) {
-    const existing = await this.prisma.role.findUnique({
-      where: { id },
+    const existing = await this.prisma.role.findFirst({
+      where: { id, sellerId: null },
       include: { _count: { select: { users: true } } },
     });
     if (!existing) throw new NotFoundException('Role not found');
@@ -130,7 +132,7 @@ export class RolesService {
   }
 
   async updateStatus(id: string, status: RoleStatus) {
-    const existing = await this.prisma.role.findUnique({ where: { id } });
+    const existing = await this.prisma.role.findFirst({ where: { id, sellerId: null } });
     if (!existing) throw new NotFoundException('Role not found');
     if (existing.isSystem) throw new ForbiddenException('System roles cannot be deactivated');
 
@@ -143,8 +145,8 @@ export class RolesService {
   }
 
   async remove(id: string) {
-    const existing = await this.prisma.role.findUnique({
-      where: { id },
+    const existing = await this.prisma.role.findFirst({
+      where: { id, sellerId: null },
       include: { _count: { select: { users: true } } },
     });
     if (!existing) throw new NotFoundException('Role not found');

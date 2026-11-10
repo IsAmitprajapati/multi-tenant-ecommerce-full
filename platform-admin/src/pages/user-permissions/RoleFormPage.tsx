@@ -13,7 +13,9 @@ import { FieldError } from '@/components/ui/field'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import {
+    capLevel,
     emptyPermissionMap,
+    maxLevelFor,
     modulesForUserType,
     PERMISSION_LEVELS,
     type PermissionLevel,
@@ -36,7 +38,8 @@ const LEVEL_ACTIVE_STYLES: Record<PermissionLevel, string> = {
     MANAGE: 'bg-primary text-primary-foreground shadow-sm',
 }
 
-function LevelSegment({ value, onChange, disabled, label }: {
+function LevelSegment({ value, onChange, disabled, label, maxLevel = 'MANAGE' }: {
+    maxLevel?: PermissionLevel
     value: PermissionLevel
     onChange: (v: PermissionLevel) => void
     disabled?: boolean
@@ -44,16 +47,18 @@ function LevelSegment({ value, onChange, disabled, label }: {
 }) {
     return (
         <div role='radiogroup' aria-label={`${label} access`} className='inline-flex shrink-0 gap-0.5 rounded-lg bg-muted p-0.5'>
-            {PERMISSION_LEVELS.map(lv => {
+            {PERMISSION_LEVELS.map((lv, i) => {
                 const active = lv.value === value
+                // Levels above the module's maximum can't be granted
+                const blocked = i > PERMISSION_LEVELS.findIndex(x => x.value === maxLevel)
                 return (
                     <button
                         key={lv.value}
                         type='button'
                         role='radio'
                         aria-checked={active}
-                        title={lv.hint}
-                        disabled={disabled}
+                        disabled={disabled || blocked}
+                        title={blocked ? `Not allowed for ${label}` : lv.hint}
                         onClick={() => onChange(lv.value)}
                         className={cn(
                             'min-w-16 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
@@ -144,7 +149,7 @@ const RoleFormPage = () => {
     const setAll = (level: PermissionLevel) =>
         setPermissions(prev => {
             const next = { ...prev }
-            modules.forEach(m => { next[m.key] = level })
+            modules.forEach(m => { next[m.key] = capLevel(m.key, level) })
             return next
         })
 
@@ -342,6 +347,7 @@ const RoleFormPage = () => {
                                             <div className='text-xs text-muted-foreground'>{m.description}</div>
                                         </div>
                                         <LevelSegment
+                                            maxLevel={maxLevelFor(m.key)}
                                             label={m.label}
                                             value={permissions[m.key]}
                                             onChange={v => setLevel(m.key, v)}

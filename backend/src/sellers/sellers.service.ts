@@ -323,7 +323,7 @@ export class SellersService {
     if (!slugCheck.data.available) throw this.conflict('slug', slugCheck.data.reason ?? 'This page URL is not available');
 
     const role = await this.prisma.role.findFirst({
-      where: { name: SELLER_ADMIN_ROLE_NAME, userType: 'SELLER', status: 'ACTIVE' },
+      where: { name: SELLER_ADMIN_ROLE_NAME, userType: 'SELLER', status: 'ACTIVE', sellerId: null },
       select: { id: true },
     });
     if (!role) throw new InternalServerErrorException(`The "${SELLER_ADMIN_ROLE_NAME}" role is missing or inactive — run the seed`);

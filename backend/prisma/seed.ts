@@ -40,7 +40,18 @@ const DEFAULT_ROLES: RoleSeed[] = [
         name: "Seller Admin",
         description: "Seller owner with full access to the seller admin panel.",
         userType: 'SELLER',
-        permissions: allOf('SELLER', 'MANAGE'),
+        // Sellers can only view customer details
+        permissions: { ...allOf('SELLER', 'MANAGE'), SELLER_CUSTOMERS: 'VIEW' },
+    },
+    {
+        name: "Seller Manager",
+        description: "Runs the business day to day: catalog, orders, returns, delivery and offers. No access to staff.",
+        userType: 'SELLER',
+        permissions: {
+            SELLER_DASHBOARD: 'VIEW', SELLER_PRODUCTS: 'MANAGE', SELLER_COLLECTIONS: 'MANAGE', SELLER_ORDERS: 'MANAGE',
+            SELLER_RETURNS: 'MANAGE', SELLER_CUSTOMERS: 'VIEW', SELLER_DISCOUNTS: 'MANAGE', SELLER_DELIVERY: 'MANAGE',
+            SELLER_REVIEWS: 'MANAGE', SELLER_SETTINGS: 'VIEW', SELLER_REPORTS: 'VIEW',
+        },
     },
     {
         name: "Seller User",
@@ -50,6 +61,32 @@ const DEFAULT_ROLES: RoleSeed[] = [
             SELLER_DASHBOARD: 'VIEW', SELLER_PRODUCTS: 'EDIT', SELLER_COLLECTIONS: 'EDIT', SELLER_ORDERS: 'EDIT',
             SELLER_RETURNS: 'EDIT', SELLER_CUSTOMERS: 'VIEW', SELLER_DISCOUNTS: 'VIEW', SELLER_DELIVERY: 'EDIT',
             SELLER_REVIEWS: 'EDIT', SELLER_REPORTS: 'VIEW',
+        },
+    },
+    {
+        name: "Seller Orders",
+        description: "Handles orders: accept, pack and hand over for delivery, returns and replacements.",
+        userType: 'SELLER',
+        permissions: {
+            SELLER_DASHBOARD: 'VIEW', SELLER_ORDERS: 'MANAGE', SELLER_RETURNS: 'EDIT', SELLER_DELIVERY: 'EDIT',
+            SELLER_PRODUCTS: 'VIEW', SELLER_CUSTOMERS: 'VIEW',
+        },
+    },
+    {
+        name: "Seller Catalog",
+        description: "Maintains products, collections, offers and replies to reviews.",
+        userType: 'SELLER',
+        permissions: {
+            SELLER_DASHBOARD: 'VIEW', SELLER_PRODUCTS: 'MANAGE', SELLER_COLLECTIONS: 'MANAGE', SELLER_DISCOUNTS: 'EDIT',
+            SELLER_REVIEWS: 'EDIT',
+        },
+    },
+    {
+        name: "Seller Viewer",
+        description: "Read-only access to the dashboard, catalog, orders and reports. Can't change anything.",
+        userType: 'SELLER',
+        permissions: {
+            ...allOf('SELLER', 'VIEW'), SELLER_SETTINGS: 'NONE', SELLER_STAFF_ROLES: 'NONE',
         },
     },
 ]

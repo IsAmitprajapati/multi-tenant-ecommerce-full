@@ -108,7 +108,8 @@ export class UsersService {
 
   private async assertRoleAssignable(roleId: string) {
     const role = await this.prisma.role.findUnique({ where: { id: roleId } })
-    if (!role) throw new BadRequestException('Selected role does not exist')
+    // A seller's private roles can't be given to platform users
+    if (!role || role.sellerId) throw new BadRequestException('Selected role does not exist')
     if (role.status !== 'ACTIVE') throw new BadRequestException('Selected role is inactive')
     if (role.userType === 'CUSTOMER') throw new BadRequestException('Customer roles cannot be assigned here')
     return role
