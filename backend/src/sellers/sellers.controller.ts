@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { SellersService } from './sellers.service.js';
-import { ListSellersQueryDto, OnboardSellerDto, SellerStatusActionDto, SlugQueryDto, UploadAuthQueryDto } from './dto/seller.dto.js';
+import { ListSellersQueryDto, OnboardSellerDto, SellerStatusActionDto, SlugQueryDto, UpdateSellerDto, UploadAuthQueryDto } from './dto/seller.dto.js';
 import { RequirePermission } from '../permissions/require-permission.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { type JwtAccessPayload } from '../auth/types/jwt-payload.type.js';
@@ -51,6 +51,13 @@ export class SellersController {
   @RequirePermission('SELLERS', 'EDIT')
   onboard(@CurrentUser() user: JwtAccessPayload, @Body() dto: OnboardSellerDto) {
     return this.sellersService.onboard(dto, user.userId);
+  }
+
+  /** Update business details, owner contact, seller page & branding (commission needs MANAGE) */
+  @Patch(':id')
+  @RequirePermission('SELLERS', 'EDIT')
+  update(@CurrentUser() user: JwtAccessPayload, @Param('id') id: string, @Body() dto: UpdateSellerDto) {
+    return this.sellersService.update(id, dto, user.userId);
   }
 
   /** APPROVE / REJECT (KYC) and SUSPEND / REACTIVATE */

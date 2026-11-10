@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import moment from 'moment'
 import { createColumnHelper } from '@tanstack/react-table'
-import { CheckIcon, MoreHorizontalIcon, PlusIcon, PowerIcon, SearchIcon, XIcon } from 'lucide-react'
+import { EyeIcon, MoreHorizontalIcon, PencilIcon, PlusIcon, PowerIcon, SearchIcon } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,7 +16,8 @@ import ConfirmDialog from '@/pages/user-permissions/_component/ConfirmDialog'
 import { usePermission } from '@/hooks/use-permission'
 import { getAxiosErrorMessage } from '@/lib/api.error'
 import { cn } from '@/lib/utils'
-import { sellerApi, type ISeller, type KycStatus, type SellerStatus, type SellerStatusAction } from '@/api/seller'
+import { sellerApi, type ISeller, type SellerStatusAction } from '@/api/seller'
+import { ACTION_COPY, KYC_PILL, Pill, STATUS_PILL } from './_component/seller-status'
 
 type Filter = 'ALL' | 'ACTIVE' | 'PENDING_KYC' | 'SUSPENDED'
 
@@ -26,30 +27,6 @@ const FILTERS: { value: Filter; label: string }[] = [
     { value: 'PENDING_KYC', label: 'Pending KYC' },
     { value: 'SUSPENDED', label: 'Suspended' },
 ]
-
-const STATUS_PILL: Record<SellerStatus, { label: string; className: string }> = {
-    ACTIVE: { label: 'Active', className: 'bg-primary/10 text-primary' },
-    PENDING: { label: 'Pending', className: 'bg-amber-100 text-amber-800' },
-    SUSPENDED: { label: 'Suspended', className: 'bg-destructive/10 text-destructive' },
-}
-
-const KYC_PILL: Record<KycStatus, { label: string; className: string }> = {
-    VERIFIED: { label: 'Verified', className: 'bg-primary/10 text-primary' },
-    UNDER_REVIEW: { label: 'Under review', className: 'bg-amber-100 text-amber-800' },
-    PENDING: { label: 'Not submitted', className: 'bg-muted text-muted-foreground' },
-    REJECTED: { label: 'Rejected', className: 'bg-destructive/10 text-destructive' },
-}
-
-const Pill = ({ label, className }: { label: string; className: string }) => (
-    <span className={cn('inline-flex w-fit items-center rounded-full px-2.5 py-0.5 text-xs font-semibold', className)}>{label}</span>
-)
-
-const ACTION_COPY: Record<SellerStatusAction, { title: (n: string) => string; description: string; confirm: string; destructive: boolean }> = {
-    APPROVE: { title: n => `Approve KYC for ${n}?`, description: 'All pending documents will be marked verified.', confirm: 'Approve', destructive: false },
-    REJECT: { title: n => `Reject KYC for ${n}?`, description: 'Pending documents will be marked rejected. The seller will need to re-submit.', confirm: 'Reject KYC', destructive: true },
-    SUSPEND: { title: n => `Suspend ${n}?`, description: 'Their listings stop selling and every seller user is signed out immediately.', confirm: 'Suspend seller', destructive: true },
-    REACTIVATE: { title: n => `Reactivate ${n}?`, description: 'The seller can sign in and sell again.', confirm: 'Reactivate', destructive: false },
-}
 
 const columnHelper = createColumnHelper<DataTableFeatures, ISeller>()
 
@@ -118,17 +95,17 @@ const SellersPage = () => {
             cell: ({ row }) => {
                 const s = row.original
                 return (
-                    <div className='flex items-center gap-3'>
+                    <button type='button' onClick={() => navigate(`/dashboard/sellers/${s.id}`)} className='group flex cursor-pointer items-center gap-3 text-left'>
                         {s.logoUrl
                             ? <img src={s.logoUrl} alt='' className='size-9 rounded-lg object-cover' />
                             : <span className='flex size-9 items-center justify-center rounded-lg text-sm font-bold text-white' style={{ background: s.brandColor }}>
                                 {s.name.slice(0, 1).toUpperCase()}
                             </span>}
                         <div className='min-w-0'>
-                            <div className='truncate font-semibold'>{s.name}</div>
+                            <div className='truncate font-semibold group-hover:text-primary'>{s.name}</div>
                             <div className='truncate text-xs text-muted-foreground'>/{s.slug}</div>
                         </div>
-                    </div>
+                    </button>
                 )
             },
         }),
@@ -167,20 +144,27 @@ const SellersPage = () => {
             header: () => <span className='sr-only'>Actions</span>,
             cell: ({ row }) => {
                 const s = row.original
-                if (!canManage) return null
-                const reviewable = s.kycStatus === 'UNDER_REVIEW' || s.kycStatus === 'PENDING'
+                const view = () => navigate(`/dashboard/sellers/${s.id}`)
+                const editDetails = () => navigate(`/dashboard/sellers/${s.id}/edit`)
+                if (!canManage) {
+                    return (
+                        <div className='flex justify-end gap-1'>
+                            <Button size='sm' variant='ghost' className='cursor-pointer text-primary' onClick={view}>
+                                <EyeIcon /> View
+                            </Button>
+                            {canOnboard && (
+                                <Button size='sm' variant='ghost' className='cursor-pointer' onClick={editDetails}>
+                                    <PencilIcon /> Edit
+                                </Button>
+                            )}
+                        </div>
+                    )
+                }
                 return (
                     <div className='flex items-center justify-end gap-1'>
-                        {reviewable && (
-                            <>
-                                <Button size='sm' variant='ghost' className='cursor-pointer text-primary' onClick={() => setPending({ seller: s, action: 'APPROVE' })}>
-                                    <CheckIcon /> Approve
-                                </Button>
-                                <Button size='sm' variant='ghost' className='cursor-pointer text-destructive' onClick={() => setPending({ seller: s, action: 'REJECT' })}>
-                                    <XIcon /> Reject
-                                </Button>
-                            </>
-                        )}
+                        <Button size='sm' variant='ghost' className='cursor-pointer text-primary' onClick={view}>
+                            <EyeIcon /> View
+                        </Button>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant='ghost' size='icon-sm' className='cursor-pointer' aria-label={`Actions for ${s.name}`}>
@@ -188,17 +172,14 @@ const SellersPage = () => {
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align='end' className='w-44'>
-                                {reviewable && (
-                                    <>
-                                        <DropdownMenuItem className='cursor-pointer' onSelect={() => setPending({ seller: s, action: 'APPROVE' })}>
-                                            <CheckIcon /> Approve KYC
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem className='cursor-pointer' onSelect={() => setPending({ seller: s, action: 'REJECT' })}>
-                                            <XIcon /> Reject KYC
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                    </>
-                                )}
+                                <DropdownMenuItem className='cursor-pointer' onSelect={view}>
+                                    <EyeIcon /> View details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className='cursor-pointer' onSelect={editDetails}>
+                                    <PencilIcon /> Edit details
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                {/* KYC approve / reject lives on the seller's View page */}
                                 {s.status === 'SUSPENDED' ? (
                                     <DropdownMenuItem className='cursor-pointer' onSelect={() => setPending({ seller: s, action: 'REACTIVATE' })}>
                                         <PowerIcon /> Reactivate

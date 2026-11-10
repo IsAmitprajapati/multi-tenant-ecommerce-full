@@ -1,10 +1,15 @@
 import { Transform, Type } from 'class-transformer';
+import { OmitType, PartialType } from '@nestjs/mapped-types';
 import {
   ArrayUnique,
   IsArray,
   IsEmail,
   IsEnum,
+  IsBoolean,
   IsIn,
+  IsNumber,
+  Max,
+  Min,
   IsOptional,
   IsString,
   Matches,
@@ -141,4 +146,27 @@ export class UploadAuthQueryDto {
 export class SellerStatusActionDto {
   @IsIn(['APPROVE', 'REJECT', 'SUSPEND', 'REACTIVATE'])
   action: 'APPROVE' | 'REJECT' | 'SUSPEND' | 'REACTIVATE';
+}
+
+/* ---------------------------- Update ---------------------------- */
+
+/** Owner email is the login and can't be changed here */
+export class UpdateSellerBusinessDto extends PartialType(OmitType(SellerBusinessDto, ['ownerEmail'] as const)) { }
+
+export class UpdateSellerProfileDto extends PartialType(SellerProfileDto) {
+  /** true removes the current logo */
+  @IsOptional() @IsBoolean()
+  removeLogo?: boolean;
+}
+
+export class UpdateSellerDto {
+  @IsOptional() @ValidateNested() @Type(() => UpdateSellerBusinessDto)
+  business?: UpdateSellerBusinessDto;
+
+  @IsOptional() @ValidateNested() @Type(() => UpdateSellerProfileDto)
+  profile?: UpdateSellerProfileDto;
+
+  /** Requires MANAGE on Sellers */
+  @IsOptional() @Type(() => Number) @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) @Max(50)
+  commissionRate?: number;
 }

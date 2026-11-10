@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcryptjs';
@@ -8,7 +8,9 @@ import { EmailService } from '../email/email.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import { KycDocumentType } from '../generated/prisma/enums.js';
 import { ImageKitStorageService, type UploadKind } from './imagekit-storage.service.js';
-import { ListSellersQueryDto, OnboardSellerDto, SellerStatusActionDto } from './dto/seller.dto.js';
+import { ListSellersQueryDto, OnboardSellerDto, SellerStatusActionDto, UpdateSellerDto } from './dto/seller.dto.js';
+import { PermissionsService } from '../permissions/permissions.service.js';
+import { hasLevel } from '../permissions/permissions.constants.js';
 import {
   BRAND_COLORS,
   BUSINESS_TYPES,
@@ -48,6 +50,14 @@ const detailSelect = {
   updatedAt: true,
   businessDetails: true,
   createdBy: { select: { id: true, fullName: true } },
+  users: {
+    select: {
+      id: true, fullName: true, email: true, phone: true, status: true, createdAt: true,
+      role: { select: { id: true, name: true } },
+      sessions: { select: { lastActiveAt: true }, orderBy: { lastActiveAt: 'desc' }, take: 1 },
+    },
+    orderBy: { createdAt: 'asc' },
+  },
   kycDocuments: {
     select: {
       id: true, documentType: true, fileName: true, mimeType: true, status: true, uploadedAt: true, reviewedAt: true,
@@ -69,12 +79,25 @@ export class SellersService {
     private readonly emailService: EmailService,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
+    private readonly permissions: PermissionsService,
   ) { }
+
+  /** Customer store (storefront) base URL from .env CUSTOMER_STORE, e.g. https://marketplace.example.com */
+  private get customerStoreUrl() {
+    return (this.config.get<string>('CUSTOMER_STORE')?.trim() || 'http://localhost:3000').replace(/\/+$/, '');
+  }
+
+  /** Base for seller pages: <CUSTOMER_STORE>/seller/ */
+  private get sellerPageBase() {
+    return `${this.customerStoreUrl}/seller/`;
+  }
 
   private serialize<T extends SellerRow>(seller: T) {
     const { _count, commissionRate, ...rest } = seller;
     return {
       ...rest,
+      /** Full public page URL, built from CUSTOMER_STORE */
+      publicUrl: `${this.sellerPageBase}${seller.slug}`,
       commissionRate: Number(commissionRate),
       kycDocumentsCount: _count.kycDocuments,
       usersCount: _count.users,
@@ -89,6 +112,7 @@ export class SellersService {
         businessTypes: BUSINESS_TYPES,
         brandColors: BRAND_COLORS,
         kycDocuments: KYC_DOCUMENTS,
+        sellerPageBase: this.sellerPageBase,
       },
     };
   }
@@ -131,7 +155,13 @@ export class SellersService {
   async findOne(id: string) {
     const seller = await this.prisma.seller.findUnique({ where: { id }, select: detailSelect });
     if (!seller) throw new NotFoundException('Seller not found');
-    return { data: this.serialize(seller) };
+    const { users, ...rest } = this.serialize(seller);
+    return {
+      data: {
+        ...rest,
+        users: users.map(({ sessions, ...u }) => ({ ...u, lastActiveAt: sessions[0]?.lastActiveAt ?? null })),
+      },
+    };
   }
 
   /** Short-lived signed link to view one private KYC document. */
@@ -265,6 +295,78 @@ export class SellersService {
     if (meta.includes('slug')) return 'slug';
     if (meta.includes('email')) return 'email';
     return null;
+  }
+
+  async update(id: string, dto: UpdateSellerDto, actorId: string) {
+    const existing = await this.prisma.seller.findUnique({
+      where: { id },
+      select: { id: true, slug: true, ownerId: true, logoFileId: true, businessDetails: { select: { id: true } } },
+    });
+    if (!existing) throw new NotFoundException('Seller not found');
+    const { business, profile, commissionRate } = dto;
+
+    // Commission is financial — only admins with MANAGE on Sellers may change it
+    if (commissionRate !== undefined) {
+      const access = await this.permissions.getEffectiveAccess(actorId);
+      if (!hasLevel(access.permissions.SELLERS, 'MANAGE')) {
+        throw new ForbiddenException('You need manage access to Sellers to change the commission rate');
+      }
+    }
+
+    // Page URL must stay unique (its own current URL is fine)
+    if (profile?.slug && profile.slug !== existing.slug) {
+      const check = await this.slugAvailability(profile.slug);
+      if (!check.data.available) throw this.conflict('slug', check.data.reason ?? 'This page URL is not available');
+    }
+
+    const logo = profile?.logoFileId ? await this.storage.verify(profile.logoFileId, 'logo') : null;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.seller.update({
+        where: { id },
+        data: {
+          ...(profile?.name && { name: profile.name }),
+          ...(profile?.slug && { slug: profile.slug }),
+          ...(profile?.category && { category: profile.category }),
+          ...(profile?.brandColor && { brandColor: profile.brandColor }),
+          ...(logo && { logoUrl: logo.url, logoFileId: logo.fileId }),
+          ...(!logo && profile?.removeLogo && { logoUrl: null, logoFileId: null }),
+          ...(commissionRate !== undefined && { commissionRate }),
+        },
+      });
+
+      if (business && Object.keys(business).length) {
+        const details = {
+          ...(business.legalBusinessName && { legalBusinessName: business.legalBusinessName }),
+          ...(business.businessType && { businessType: business.businessType }),
+          ...(business.registeredAddress && { registeredAddress: business.registeredAddress }),
+          // Optional fields: sending '' clears them (DTO turns '' into undefined, so use 'in')
+          ...('gstNumber' in business && { gstNumber: business.gstNumber ?? null }),
+          ...('panNumber' in business && { panNumber: business.panNumber ?? null }),
+          ...(business.ownerName && { contactPersonName: business.ownerName }),
+          ...(business.ownerPhone && { contactPersonMobile: business.ownerPhone }),
+        };
+        await tx.sellerBusinessDetails.update({ where: { sellerId: id }, data: details });
+
+        // Keep the owner's account in sync with the contact details
+        if (business.ownerName || business.ownerPhone) {
+          await tx.user.update({
+            where: { id: existing.ownerId },
+            data: {
+              ...(business.ownerName && { fullName: business.ownerName }),
+              ...(business.ownerPhone && { phone: business.ownerPhone }),
+            },
+          });
+        }
+      }
+    }).catch((err: unknown) => {
+      if (this.uniqueViolationField(err) === 'slug') {
+        throw this.conflict('slug', 'This page URL was just taken by another seller — choose a different one');
+      }
+      throw err;
+    });
+
+    return { success: true, message: 'Seller details updated', data: (await this.findOne(id)).data };
   }
 
   private async sendInvite(userId: string, name: string, email: string, sellerName: string) {

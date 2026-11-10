@@ -12,6 +12,8 @@ import CommisionPayoutPages from "@/pages/dashboard/commision-payouts/CommisionP
 import DashboardPage from "@/pages/dashboard/DashboardPage";
 import SellersPage from "@/pages/sellers/SellersPage";
 import OnboardSellerPage from "@/pages/sellers/OnboardSellerPage";
+import SellerDetailPage from "@/pages/sellers/SellerDetailPage";
+import SellerEditPage from "@/pages/sellers/SellerEditPage";
 import CreateUserPage from "@/pages/user-permissions/CreateUser";
 import RolesPage from "@/pages/user-permissions/RolesPage";
 import RoleFormPage from "@/pages/user-permissions/RoleFormPage";
@@ -38,8 +40,10 @@ export default function Routers() {
                     <Route index element={<DashboardPage />} />
                     <Route path="sellers" element={<PermissionRoute module="SELLERS" level="VIEW" />}>
                         <Route index element={<SellersPage />} />
+                        <Route path=":sellerId" element={<SellerDetailPage />} />
                         <Route element={<PermissionRoute module="SELLERS" level="EDIT" />}>
                             <Route path="onboard" element={<OnboardSellerPage />} />
+                            <Route path=":sellerId/edit" element={<SellerEditPage />} />
                         </Route>
                     </Route>
                     <Route path="commision-payouts" element={<CommisionPayoutPages />} />

@@ -11,13 +11,12 @@ import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { cn } from '@/lib/utils'
+import { cn, displayUrl } from '@/lib/utils'
 import { getAxiosErrorMessage } from '@/lib/api.error'
 import { sellerApi, type BusinessType, type KycDocumentType, type OnboardSellerPayload, type SellerMeta } from '@/api/seller'
 import FileUploadTile, { type UploadValue } from './_component/FileUploadTile'
 
 const SELLERS_PATH = '/dashboard/sellers'
-const PAGE_BASE = 'marketplace.platform.com/seller/'
 const STEPS = ['Business info', 'Seller page', 'KYC', 'Review'] as const
 
 const GST = /^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/
@@ -265,6 +264,8 @@ const OnboardSellerPage = () => {
     }
 
     const businessTypeLabel = meta?.businessTypes.find(t => t.value === business.businessType)?.label
+    // From CUSTOMER_STORE in the backend .env
+    const pageBase = displayUrl(meta?.sellerPageBase ?? '')
 
     return (
         <div className='pb-10'>
@@ -355,7 +356,7 @@ const OnboardSellerPage = () => {
                                         'flex h-10 items-center overflow-hidden rounded-lg border border-input focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50',
                                         errors.slug && 'border-destructive'
                                     )}>
-                                        <span className='shrink-0 pl-3 text-sm text-muted-foreground'>{PAGE_BASE}</span>
+                                        <span className='max-w-[55%] shrink-0 truncate pl-3 text-sm text-muted-foreground' title={pageBase}>{pageBase}</span>
                                         <input id='slug' className='h-full min-w-0 flex-1 bg-transparent pr-2 text-sm outline-none'
                                             value={profile.slug} placeholder='green-grocer'
                                             onChange={e => { setSlugTouched(true); setP('slug', slugify(e.target.value)) }} />
@@ -451,7 +452,7 @@ const OnboardSellerPage = () => {
                                         {profile.name}
                                     </span>
                                 </ReviewRow>
-                                <ReviewRow label='Seller page'>{PAGE_BASE}{profile.slug}</ReviewRow>
+                                <ReviewRow label='Seller page'>{pageBase}{profile.slug}</ReviewRow>
                                 <ReviewRow label='Category'>{category?.label}</ReviewRow>
                                 <ReviewRow label='KYC'>
                                     {kycMode === 'UPLOAD' ? `${requiredDocs.length} documents uploaded · queued for review` : `Verified offline · ${offlineReference}`}
