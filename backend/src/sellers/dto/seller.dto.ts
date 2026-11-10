@@ -139,8 +139,8 @@ export class SlugQueryDto {
 }
 
 export class UploadAuthQueryDto {
-  @IsIn(['logo', 'kyc'])
-  kind: 'logo' | 'kyc';
+  @IsIn(['logo', 'kyc', 'product'])
+  kind: 'logo' | 'kyc' | 'product';
 }
 
 export class SellerStatusActionDto {

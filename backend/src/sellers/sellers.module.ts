@@ -12,6 +12,6 @@ import { EmailModule } from '../email/email.module.js';
   imports: [JwtModule.register({}), EmailModule],
   controllers: [SellersController, SellerPortalController, SellerTeamController],
   providers: [SellersService, ImageKitStorageService, SellerTeamService],
-  exports: [SellersService],
+  exports: [SellersService, ImageKitStorageService],
 })
 export class SellersModule { }

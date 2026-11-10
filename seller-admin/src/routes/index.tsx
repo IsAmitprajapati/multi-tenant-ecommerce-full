@@ -19,6 +19,9 @@ import DashboardPage from "@/pages/dashboard/DashboardPage";
 import ProfileDetailsPage from "@/pages/account/ProfileDetailsPage";
 import ComingSoonPage from "@/pages/ComingSoonPage";
 import StaffPage from "@/pages/staff/StaffPage";
+import ProductsPage from "@/pages/products/ProductsPage";
+import ProductFormPage from "@/pages/products/ProductFormPage";
+import ProductViewPage from "@/pages/products/ProductViewPage";
 import StaffFormPage from "@/pages/staff/StaffFormPage";
 import StaffDetailPage from "@/pages/staff/StaffDetailPage";
 import RoleDetailPage from "@/pages/staff/RoleDetailPage";
@@ -27,7 +30,6 @@ import { BrandLogo } from "@/components/brand/SiteHeader";
 
 /** Seller modules not built yet — each gated by its permission */
 const MODULE_PAGES: { path: string; module: PermissionModule; title: string; description: string }[] = [
-    { path: "products", module: "SELLER_PRODUCTS", title: "Products", description: "Your catalog, variants, pricing and inventory." },
     { path: "collections", module: "SELLER_COLLECTIONS", title: "Collections", description: "Group products into curated collections." },
     { path: "orders", module: "SELLER_ORDERS", title: "Orders", description: "Accept, pack and hand over orders for delivery." },
     { path: "returns", module: "SELLER_RETURNS", title: "Returns & replacements", description: "Review return and replacement requests." },
@@ -73,6 +75,14 @@ export default function Routers() {
                     <Route path="dashboard" element={<DashboardLayouts />}>
                         <Route index element={<PermissionRoute module="SELLER_DASHBOARD"><DashboardPage /></PermissionRoute>} />
                         <Route path="my-account" element={<ProfileDetailsPage />} />
+                        <Route path="products" element={<PermissionRoute module="SELLER_PRODUCTS" />}>
+                            <Route index element={<ProductsPage />} />
+                            <Route path=":productId" element={<ProductViewPage />} />
+                            <Route element={<PermissionRoute module="SELLER_PRODUCTS" level="EDIT" />}>
+                                <Route path="new" element={<ProductFormPage />} />
+                                <Route path=":productId/edit" element={<ProductFormPage />} />
+                            </Route>
+                        </Route>
                         <Route path="staff" element={<PermissionRoute module="SELLER_STAFF_ROLES" />}>
                             <Route index element={<StaffPage />} />
                             <Route path="roles/:roleId" element={<RoleDetailPage />} />

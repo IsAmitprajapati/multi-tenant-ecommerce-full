@@ -10,6 +10,7 @@ import { EmailModule } from './email/email.module.js';
 import { PermissionsModule } from './permissions/permissions.module.js';
 import { RolesModule } from './roles/roles.module.js';
 import { SellersModule } from './sellers/sellers.module.js';
+import { ProductsModule } from './products/products.module.js';
 
 @Module({
 
@@ -25,6 +26,7 @@ import { SellersModule } from './sellers/sellers.module.js';
     EmailModule,
     RolesModule,
     SellersModule,
+    ProductsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

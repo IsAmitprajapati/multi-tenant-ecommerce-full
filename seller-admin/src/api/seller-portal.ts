@@ -4,7 +4,7 @@ export type SellerStatus = 'PENDING' | 'ACTIVE' | 'SUSPENDED'
 export type KycStatus = 'PENDING' | 'UNDER_REVIEW' | 'VERIFIED' | 'REJECTED'
 export type BusinessType = 'SOLE_PROPRIETORSHIP' | 'PARTNERSHIP' | 'LLP' | 'PRIVATE_LIMITED' | 'PUBLIC_LIMITED' | 'HUF' | 'OTHER'
 export type KycDocumentType = 'AADHAAR' | 'PAN' | 'BUSINESS_REGISTRATION_CERTIFICATE' | 'FSSAI' | 'OTHER'
-export type UploadKind = 'logo' | 'kyc'
+export type UploadKind = 'logo' | 'kyc' | 'product'
 
 export interface SellerCategory {
     key: string

@@ -119,7 +119,66 @@ async function seedRoles() {
     return ids
 }
 
+/***Platform product taxonomy — top level matches the seller categories */
+const CATEGORY_TREE: { key: string; name: string; requiresFssai?: boolean; children: string[] }[] = [
+    { key: 'grocery', name: 'Grocery & food', requiresFssai: true, children: ['Fruits', 'Vegetables', 'Dairy & eggs', 'Bakery', 'Staples', 'Beverages', 'Snacks', 'Meat & seafood'] },
+    { key: 'fashion', name: 'Fashion & apparel', children: ["Men's clothing", "Women's clothing", 'Kids', 'Footwear', 'Accessories'] },
+    { key: 'electronics', name: 'Electronics', children: ['Mobiles & tablets', 'Laptops & computers', 'Audio', 'TVs & appliances', 'Accessories'] },
+    { key: 'home', name: 'Home & kitchen', children: ['Cookware', 'Home decor', 'Furniture', 'Storage'] },
+    { key: 'beauty', name: 'Beauty & personal care', children: ['Skincare', 'Haircare', 'Makeup', 'Fragrances'] },
+    { key: 'other', name: 'Other', children: ['General'] },
+]
+
+/***GST tax classes (verify rates with your CA before going live) */
+const TAX_CLASSES: { hsnCode: string; description: string; rate: number }[] = [
+    { hsnCode: '0803', description: 'Fresh fruits', rate: 0 },
+    { hsnCode: '0709', description: 'Fresh vegetables', rate: 0 },
+    { hsnCode: '0401', description: 'Milk & fresh dairy', rate: 0 },
+    { hsnCode: '1905', description: 'Bread & bakery', rate: 5 },
+    { hsnCode: '1006', description: 'Rice & staples (packaged)', rate: 5 },
+    { hsnCode: '2106', description: 'Packaged food preparations', rate: 18 },
+    { hsnCode: '6109', description: 'Apparel up to ₹1,000', rate: 5 },
+    { hsnCode: '6203', description: 'Apparel above ₹1,000', rate: 12 },
+    { hsnCode: '6403', description: 'Footwear', rate: 18 },
+    { hsnCode: '8517', description: 'Mobile phones', rate: 18 },
+    { hsnCode: '8471', description: 'Computers & laptops', rate: 18 },
+    { hsnCode: '3304', description: 'Cosmetics & skincare', rate: 18 },
+    { hsnCode: '9403', description: 'Furniture', rate: 18 },
+    { hsnCode: '9999', description: 'General goods', rate: 18 },
+]
+
+const slugify = (v: string) => v.toLowerCase().replace(/&/g, 'and').replace(/'/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
+async function seedCatalog() {
+    for (const [i, top] of CATEGORY_TREE.entries()) {
+        const parent = await prisma.productCategory.upsert({
+            where: { slug: top.key },
+            update: {},
+            create: { name: top.name, slug: top.key, sellerCategory: top.key, requiresFssai: top.requiresFssai ?? false, sortOrder: i },
+        })
+        for (const [j, child] of top.children.entries()) {
+            const slug = `${top.key}-${slugify(child)}`
+            await prisma.productCategory.upsert({
+                where: { slug },
+                update: {},
+                create: { name: child, slug, parentId: parent.id, requiresFssai: top.requiresFssai ?? false, sortOrder: j },
+            })
+        }
+    }
+    for (const t of TAX_CLASSES) {
+        await prisma.taxClass.upsert({
+            where: { hsnCode_gstRatePercent: { hsnCode: t.hsnCode, gstRatePercent: t.rate } },
+            update: {},
+            create: { hsnCode: t.hsnCode, description: t.description, gstRatePercent: t.rate },
+        })
+    }
+    console.log(`  catalog: ${CATEGORY_TREE.length} top categories, ${TAX_CLASSES.length} tax classes`)
+}
+
 async function main() {
+    console.log("Seeding catalog")
+    await seedCatalog()
+
 
     console.log("Seeding roles")
     const roleIds = await seedRoles()
