@@ -17,6 +17,7 @@ import SellerEditPage from "@/pages/sellers/SellerEditPage";
 import CategoriesPage from "@/pages/catalog/CategoriesPage";
 import CategoryDetailPage from "@/pages/catalog/CategoryDetailPage";
 import CategoryFormPage from "@/pages/catalog/CategoryFormPage";
+import HomePageBuilder from '@/pages/storefront/HomePageBuilder'
 import CreateUserPage from "@/pages/user-permissions/CreateUser";
 import RolesPage from "@/pages/user-permissions/RolesPage";
 import RoleFormPage from "@/pages/user-permissions/RoleFormPage";
@@ -61,6 +62,12 @@ export default function Routers() {
                             <Route path="categories/new" element={<CategoryFormPage />} />
                             <Route path="categories/:categoryId/edit" element={<CategoryFormPage />} />
                         </Route>
+                    </Route>
+
+                    {/***Storefront (customer home page) */}
+                    <Route path="storefront" element={<PermissionRoute module="STOREFRONT" level="VIEW" />}>
+                        <Route index element={<Navigate to="home" replace />} />
+                        <Route path="home" element={<HomePageBuilder />} />
                     </Route>
 
                     {/***Users & Permissions */}

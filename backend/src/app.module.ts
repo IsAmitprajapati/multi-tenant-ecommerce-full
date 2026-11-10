@@ -12,6 +12,7 @@ import { RolesModule } from './roles/roles.module.js';
 import { SellersModule } from './sellers/sellers.module.js';
 import { ProductsModule } from './products/products.module.js';
 import { CatalogModule } from './catalog/catalog.module.js';
+import { StorefrontModule } from './storefront/storefront.module.js';
 
 @Module({
 
@@ -29,6 +30,7 @@ import { CatalogModule } from './catalog/catalog.module.js';
     SellersModule,
     ProductsModule,
     CatalogModule,
+    StorefrontModule,
   ],
   controllers: [AppController],
   providers: [AppService],

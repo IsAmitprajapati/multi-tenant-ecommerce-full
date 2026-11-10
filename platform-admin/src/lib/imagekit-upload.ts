@@ -1,4 +1,4 @@
-import { sellerApi, type UploadKind } from '@/api/seller'
+import { sellerApi, type UploadAuth, type UploadKind } from '@/api/seller'
 import { getAxiosErrorMessage } from './api.error'
 
 const UPLOAD_URL = 'https://upload.imagekit.io/api/v1/files/upload'
@@ -17,14 +17,15 @@ export class UploadError extends Error { }
  * Our API only signs the request (`/sellers/upload-auth`) and later verifies the fileId.
  */
 export async function uploadToImageKit(
-    kind: UploadKind,
+    /** A seller upload kind, or a function that fetches upload credentials (e.g. storefront banners) */
+    kind: UploadKind | (() => Promise<UploadAuth>),
     file: File,
     onProgress?: (percent: number) => void,
     signal?: AbortSignal
 ): Promise<UploadedFile> {
     let auth
     try {
-        auth = (await sellerApi.uploadAuth(kind)).data
+        auth = typeof kind === 'function' ? await kind() : (await sellerApi.uploadAuth(kind)).data
     } catch (err) {
         throw new UploadError(getAxiosErrorMessage(err, 'Could not start the upload'))
     }

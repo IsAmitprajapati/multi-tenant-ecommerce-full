@@ -14,6 +14,7 @@ export const PERMISSION_MODULES = [
   { key: 'SELLERS', scope: 'PLATFORM', label: 'Sellers', description: 'Seller onboarding and KYC' },
   { key: 'COMMISSION_PAYOUTS', scope: 'PLATFORM', label: 'Commission & payouts', description: 'Commission rules, settlements and payouts' },
   { key: 'GLOBAL_CATALOG', scope: 'PLATFORM', label: 'Global catalog', description: 'Products, brands, attributes and tax' },
+  { key: 'STOREFRONT', scope: 'PLATFORM', label: 'Storefront', description: 'Customer home page: banners and sections' },
   { key: 'DELIVERY_NETWORK', scope: 'PLATFORM', label: 'Delivery network', description: 'Delivery agents, zones and KYC' },
   { key: 'CUSTOMERS', scope: 'PLATFORM', label: 'Customers', description: 'Customer accounts' },
   { key: 'ORDERS', scope: 'PLATFORM', label: 'Orders', description: 'Orders, cancellations and refunds' },

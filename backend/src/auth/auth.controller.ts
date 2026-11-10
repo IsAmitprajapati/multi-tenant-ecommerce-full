@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Ip, HttpStatus, Http
 import { AuthService } from './auth.service.js';
 import { CreateAuthDto } from './dto/create-auth.dto.js';
 import { UpdateAuthDto } from './dto/update-auth.dto.js';
-import { forgotPasswordDto, LoginDTO, resetPasswordDto, SellerRegisterDto } from './dto/login.dto.js';
+import { CustomerRegisterDto, forgotPasswordDto, LoginDTO, resetPasswordDto, SellerRegisterDto } from './dto/login.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { type JwtAccessPayload } from './types/jwt-payload.type.js';
@@ -35,6 +35,18 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   registerSeller(@Body() dto: SellerRegisterDto, @Ip() ip: string, @ParsedUserAgent() ua: any) {
     return this.authService.registerSeller(dto, {
+      ipAddress: ip,
+      browser: ua?.browser?.name,
+      os: ua?.os?.name,
+      device: ua?.device?.model
+    })
+  }
+
+  /***Customer storefront signup: creates a shopper account and signs in */
+  @Post('/customer/register')
+  @HttpCode(HttpStatus.CREATED)
+  registerCustomer(@Body() dto: CustomerRegisterDto, @Ip() ip: string, @ParsedUserAgent() ua: any) {
+    return this.authService.registerCustomer(dto, {
       ipAddress: ip,
       browser: ua?.browser?.name,
       os: ua?.os?.name,

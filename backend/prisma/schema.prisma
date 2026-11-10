@@ -337,6 +337,7 @@ model ProductCategory {
   sortOrder             Int               @default(0) @map("sort_order")
   products              Product[]
   sellerCategories      SellerCategory[]
+  homeSections          HomeSection[]     @relation("HomeSectionCategory")
   createdAt             DateTime          @default(now()) @map("created_at")
   updatedAt             DateTime          @default(now()) @updatedAt @map("updated_at")
 
@@ -410,9 +411,10 @@ model Product {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  variants    ProductVariant[]
-  images      ProductImage[]
-  adjustments InventoryAdjustment[]
+  variants     ProductVariant[]
+  images       ProductImage[]
+  adjustments  InventoryAdjustment[]
+  homeSections HomeSectionProduct[]
 
   @@unique([sellerId, slug])
   @@index([sellerId, status])
@@ -488,4 +490,103 @@ model SellerCategory {
   @@id([sellerId, categoryId])
   @@index([categoryId])
   @@map("seller_categories")
+}
+
+// ───────────────────────── Storefront (customer home page) ─────────────────────────
+
+enum BannerDisplayMode {
+  /// Rotating slides
+  CAROUSEL
+  /// Only the first active banner
+  SINGLE
+}
+
+enum HomeSectionType {
+  SHOP_BY_CATEGORY
+  PRODUCTS
+  /// Row of 1–6 colour tiles (tag + title + link), e.g. collections or campaigns
+  PROMO_CARDS
+}
+
+enum HomeProductSource {
+  /// Biggest discount (compare-at vs selling price)
+  DEALS
+  LATEST
+  /// Most ordered recently (falls back to latest until orders exist)
+  TRENDING
+  /// Latest products in one category (top-level or sub-category)
+  CATEGORY
+  /// Hand-picked products
+  MANUAL
+}
+
+/// Single row (id = "default"): home page settings
+model StorefrontSettings {
+  id              String            @id @default("default")
+  bannerMode      BannerDisplayMode @default(CAROUSEL) @map("banner_mode")
+  /// Carousel autoplay interval
+  autoplaySeconds Int               @default(5) @map("autoplay_seconds")
+  updatedAt       DateTime          @default(now()) @updatedAt @map("updated_at")
+
+  @@map("storefront_settings")
+}
+
+model HomeBanner {
+  id          String    @id @default(cuid())
+  title       String
+  subtitle    String?
+  ctaLabel    String?   @map("cta_label")
+  /// Where the banner goes, e.g. /category/grocery or a full URL
+  linkUrl     String?   @map("link_url")
+  /// ImageKit (public)
+  imageFileId String    @map("image_file_id")
+  imageUrl    String    @map("image_url")
+  sortOrder   Int       @default(0) @map("sort_order")
+  isActive    Boolean   @default(true) @map("is_active")
+  /// Optional schedule
+  startsAt    DateTime? @map("starts_at")
+  endsAt      DateTime? @map("ends_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([isActive, sortOrder])
+  @@map("home_banners")
+}
+
+model HomeSection {
+  id           String               @id @default(cuid())
+  type         HomeSectionType
+  title        String
+  subtitle     String?
+  /// PRODUCTS sections only
+  source       HomeProductSource?
+  /// CATEGORY source: the category to show
+  categoryId   String?              @map("category_id")
+  category     ProductCategory?     @relation("HomeSectionCategory", fields: [categoryId], references: [id], onDelete: SetNull)
+  /// SHOP_BY_CATEGORY: chosen top-level categories in order (empty = all active)
+  categoryIds  String[]             @default([]) @map("category_ids")
+  productLimit Int                  @default(12) @map("product_limit")
+  /// PROMO_CARDS: [{ tag, title, linkUrl, theme }]
+  cards        Json                 @default("[]")
+  sortOrder    Int                  @default(0) @map("sort_order")
+  isActive     Boolean              @default(true) @map("is_active")
+  createdAt    DateTime             @default(now()) @map("created_at")
+  updatedAt    DateTime             @updatedAt @map("updated_at")
+  products     HomeSectionProduct[]
+
+  @@index([isActive, sortOrder])
+  @@map("home_sections")
+}
+
+/// MANUAL source: hand-picked products in order
+model HomeSectionProduct {
+  sectionId String      @map("section_id")
+  section   HomeSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  productId String      @map("product_id")
+  product   Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sortOrder Int         @default(0) @map("sort_order")
+
+  @@id([sectionId, productId])
+  @@index([productId])
+  @@map("home_section_products")
 }

@@ -11,12 +11,13 @@ import ImageKit from '@imagekit/nodejs';
  *
  * Env: IMAGEKIT_PUBLIC_KEY, IMAGEKIT_PRIVATE_KEY, IMAGEKIT_URL_ENDPOINT, IMAGEKIT_ROOT_FOLDER (optional)
  */
-export type UploadKind = 'logo' | 'kyc' | 'product';
+export type UploadKind = 'logo' | 'kyc' | 'product' | 'banner';
 
 const RULES: Record<UploadKind, { subfolder: string; private: boolean; mimes: string[] }> = {
   logo: { subfolder: 'sellers/logos', private: false, mimes: ['image/png', 'image/jpeg', 'image/webp'] },
   kyc: { subfolder: 'sellers/kyc', private: true, mimes: ['application/pdf', 'image/png', 'image/jpeg'] },
   product: { subfolder: 'sellers/products', private: false, mimes: ['image/png', 'image/jpeg', 'image/webp'] },
+  banner: { subfolder: 'storefront/banners', private: false, mimes: ['image/png', 'image/jpeg', 'image/webp'] },
 };
 
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;

@@ -2,7 +2,7 @@ import { IsEmail,IsIn,IsNotEmpty,IsOptional,IsString, Matches, MinLength } from 
 import { Transform } from 'class-transformer'
 
 /** Which app is signing in — each app only accepts its own kind of account */
-export const LOGIN_PANELS = ['PLATFORM', 'SELLER'] as const
+export const LOGIN_PANELS = ['PLATFORM', 'SELLER', 'CUSTOMER'] as const
 export type LoginPanel = (typeof LOGIN_PANELS)[number]
 
 export class LoginDTO {
@@ -43,6 +43,9 @@ export class SellerRegisterDto {
     password! : string;
 }
 
+
+/** Customer storefront signup */
+export class CustomerRegisterDto extends SellerRegisterDto { }
 
 export class forgotPasswordDto {
     @IsEmail()

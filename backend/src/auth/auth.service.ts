@@ -11,7 +11,7 @@ import bcrypt from 'bcryptjs';
 import { randomInt } from 'crypto'
 import { EmailService } from '../email/email.service.js';
 import { PermissionsService } from '../permissions/permissions.service.js';
-import { type LoginPanel, SellerRegisterDto } from './dto/login.dto.js';
+import { CustomerRegisterDto, type LoginPanel, SellerRegisterDto } from './dto/login.dto.js';
 
 export interface LoginContext {
   ipAddress?: string
@@ -79,6 +79,9 @@ export class AuthService {
     if (panel === 'PLATFORM' && user.userType !== 'PLATFORM_ADMIN') {
       throw new ForbiddenException("This account can't sign in to the platform admin console")
     }
+    if (panel === 'CUSTOMER' && user.userType !== 'CUSTOMER') {
+      throw new ForbiddenException('This account is for a seller or platform console — use a shopper account to sign in here')
+    }
     if (panel === 'SELLER') {
       if (user.userType !== 'SELLER') {
         throw new ForbiddenException("This account can't sign in to the seller dashboard")
@@ -114,6 +117,24 @@ export class AuthService {
       },
     })
 
+    const token = await this.issueTokenPair(user, context)
+    return { ...token, userType: user.userType }
+  }
+
+  /** Customer storefront signup: creates a shopper account (no admin role) and signs them in. */
+  async registerCustomer(dto: CustomerRegisterDto, context: LoginContext = {}) {
+    if (await this.prisma.user.findUnique({ where: { email: dto.email }, select: { id: true } })) {
+      throw new ConflictException('An account with this email already exists — log in instead')
+    }
+    const user = await this.prisma.user.create({
+      data: {
+        email: dto.email,
+        fullName: dto.fullName,
+        phone: dto.phone,
+        passwordHash: await bcrypt.hash(dto.password, 10),
+        userType: 'CUSTOMER',
+      },
+    })
     const token = await this.issueTokenPair(user, context)
     return { ...token, userType: user.userType }
   }
@@ -334,7 +355,7 @@ export class AuthService {
     const otpHash = await bcrypt.hash(generateOtp, 10)
 
     /***5 Min expires */
-    const expiredAt = new Date((Date.now() + 5) * 60 * 60)
+    const expiredAt = new Date(Date.now() + 5 * 60 * 1000)
 
     await this.prisma.twoFactorOtp.create({
       data: {
@@ -594,7 +615,7 @@ export class AuthService {
     /**
      * 5 Min valid
      */
-    const expiredAt = new Date((Date.now() + 5) * 60 * 60)
+    const expiredAt = new Date(Date.now() + 5 * 60 * 1000)
 
     const save = await this.prisma.passwordResetOtp.create({
       data: {
@@ -641,7 +662,8 @@ export class AuthService {
     const dataotp = await this.prisma.passwordResetOtp.findFirst({
       where: {
         userId: user.id,
-        consumedAt: null
+        consumedAt: null,
+        expiresAt: { gt: new Date() }
       },
       orderBy: {
         createdAt: 'desc'
@@ -657,6 +679,9 @@ export class AuthService {
     if (!decodehashOtp) {
       throw new BadRequestException('otp will be expired')
     }
+
+    // One-time: an OTP can't be reused once verified
+    await this.prisma.passwordResetOtp.update({ where: { id: dataotp.id }, data: { consumedAt: new Date() } })
 
     const resetTokenPayload = {
       userId: user?.id

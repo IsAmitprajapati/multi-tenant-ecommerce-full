@@ -1,0 +1,428 @@
+{
+ "sellers": [
+  {
+   "slug": "demo-green-grocer",
+   "name": "Green Grocer",
+   "brandColor": "#1B7A4F",
+   "category": "grocery",
+   "products": [
+    {
+     "title": "Alphonso mango 1kg",
+     "emoji": "🥭",
+     "category": "grocery-fruits",
+     "price": 289,
+     "mrp": 385,
+     "hsn": "0803",
+     "image": "demo-green-grocer-01.jpg"
+    },
+    {
+     "title": "Robusta bananas (6 pcs)",
+     "emoji": "🍌",
+     "category": "grocery-fruits",
+     "price": 49,
+     "mrp": 60,
+     "hsn": "0803",
+     "image": "demo-green-grocer-02.jpg"
+    },
+    {
+     "title": "Hass avocado (2 pcs)",
+     "emoji": "🥑",
+     "category": "grocery-fruits",
+     "price": 179,
+     "mrp": 220,
+     "hsn": "0803",
+     "image": "demo-green-grocer-03.jpg"
+    },
+    {
+     "title": "Farm fresh tomatoes 1kg",
+     "emoji": "🍅",
+     "category": "grocery-vegetables",
+     "price": 40,
+     "mrp": null,
+     "hsn": "0709",
+     "image": "demo-green-grocer-04.jpg"
+    },
+    {
+     "title": "Orange carrots 500g",
+     "emoji": "🥕",
+     "category": "grocery-vegetables",
+     "price": 45,
+     "mrp": 55,
+     "hsn": "0709",
+     "image": "demo-green-grocer-05.jpg"
+    },
+    {
+     "title": "Broccoli 1 head",
+     "emoji": "🥦",
+     "category": "grocery-vegetables",
+     "price": 89,
+     "mrp": null,
+     "hsn": "0709",
+     "image": "demo-green-grocer-06.jpg"
+    },
+    {
+     "title": "Toned milk 1L",
+     "emoji": "🥛",
+     "category": "grocery-dairy-and-eggs",
+     "price": 68,
+     "mrp": null,
+     "hsn": "0401",
+     "image": "demo-green-grocer-07.jpg"
+    },
+    {
+     "title": "Free-range eggs (12)",
+     "emoji": "🥚",
+     "category": "grocery-dairy-and-eggs",
+     "price": 84,
+     "mrp": 96,
+     "hsn": "0401",
+     "image": "demo-green-grocer-08.jpg"
+    },
+    {
+     "title": "Cheddar cheese block 200g",
+     "emoji": "🧀",
+     "category": "grocery-dairy-and-eggs",
+     "price": 210,
+     "mrp": 260,
+     "hsn": "0401",
+     "image": "demo-green-grocer-09.jpg"
+    },
+    {
+     "title": "Multigrain bread",
+     "emoji": "🍞",
+     "category": "grocery-bakery",
+     "price": 65,
+     "mrp": 72,
+     "hsn": "1905",
+     "image": "demo-green-grocer-10.jpg"
+    },
+    {
+     "title": "Butter croissants (4 pcs)",
+     "emoji": "🥐",
+     "category": "grocery-bakery",
+     "price": 120,
+     "mrp": null,
+     "hsn": "1905",
+     "image": "demo-green-grocer-11.jpg"
+    },
+    {
+     "title": "Basmati rice 5kg",
+     "emoji": "🍚",
+     "category": "grocery-staples",
+     "price": 540,
+     "mrp": 620,
+     "hsn": "1006",
+     "image": "demo-green-grocer-12.jpg"
+    },
+    {
+     "title": "Filter coffee 500g",
+     "emoji": "☕",
+     "category": "grocery-beverages",
+     "price": 349,
+     "mrp": 450,
+     "hsn": "2106",
+     "image": "demo-green-grocer-13.jpg"
+    },
+    {
+     "title": "Fresh orange juice 1L",
+     "emoji": "🧃",
+     "category": "grocery-beverages",
+     "price": 110,
+     "mrp": null,
+     "hsn": "2106",
+     "image": "demo-green-grocer-14.jpg"
+    },
+    {
+     "title": "Choco chip cookies",
+     "emoji": "🍪",
+     "category": "grocery-snacks",
+     "price": 99,
+     "mrp": 120,
+     "hsn": "2106",
+     "image": "demo-green-grocer-15.jpg"
+    },
+    {
+     "title": "Butter popcorn",
+     "emoji": "🍿",
+     "category": "grocery-snacks",
+     "price": 60,
+     "mrp": null,
+     "hsn": "2106",
+     "image": "demo-green-grocer-16.jpg"
+    }
+   ]
+  },
+  {
+   "slug": "demo-urban-threads",
+   "name": "Urban Threads",
+   "brandColor": "#B4436C",
+   "category": "fashion",
+   "products": [
+    {
+     "title": "Cotton crew-neck t-shirt",
+     "emoji": "👕",
+     "category": "fashion-mens-clothing",
+     "price": 499,
+     "mrp": 799,
+     "hsn": "6109",
+     "image": "demo-urban-threads-01.jpg"
+    },
+    {
+     "title": "Slim-fit denim jeans",
+     "emoji": "👖",
+     "category": "fashion-mens-clothing",
+     "price": 1299,
+     "mrp": 1999,
+     "hsn": "6203",
+     "image": "demo-urban-threads-02.jpg"
+    },
+    {
+     "title": "Floral summer dress",
+     "emoji": "👗",
+     "category": "fashion-womens-clothing",
+     "price": 1499,
+     "mrp": 2499,
+     "hsn": "6203",
+     "image": "demo-urban-threads-03.jpg"
+    },
+    {
+     "title": "Printed cotton kurta set",
+     "emoji": "👘",
+     "category": "fashion-womens-clothing",
+     "price": 899,
+     "mrp": 1499,
+     "hsn": "6109",
+     "image": "demo-urban-threads-04.jpg"
+    },
+    {
+     "title": "Running sneakers",
+     "emoji": "👟",
+     "category": "fashion-footwear",
+     "price": 2199,
+     "mrp": 2999,
+     "hsn": "6403",
+     "image": "demo-urban-threads-05.jpg"
+    },
+    {
+     "title": "Block-heel sandals",
+     "emoji": "👠",
+     "category": "fashion-footwear",
+     "price": 1599,
+     "mrp": null,
+     "hsn": "6403",
+     "image": "demo-urban-threads-06.jpg"
+    },
+    {
+     "title": "Classic baseball cap",
+     "emoji": "🧢",
+     "category": "fashion-accessories",
+     "price": 399,
+     "mrp": 599,
+     "hsn": "6109",
+     "image": "demo-urban-threads-07.jpg"
+    },
+    {
+     "title": "Leather tote bag",
+     "emoji": "👜",
+     "category": "fashion-accessories",
+     "price": 1799,
+     "mrp": 2499,
+     "hsn": "6203",
+     "image": "demo-urban-threads-08.jpg"
+    },
+    {
+     "title": "Polarised sunglasses",
+     "emoji": "🕶️",
+     "category": "fashion-accessories",
+     "price": 699,
+     "mrp": 999,
+     "hsn": "9999",
+     "image": "demo-urban-threads-09.jpg"
+    },
+    {
+     "title": "Kids sports vest",
+     "emoji": "🎽",
+     "category": "fashion-kids",
+     "price": 349,
+     "mrp": null,
+     "hsn": "6109",
+     "image": "demo-urban-threads-10.jpg"
+    }
+   ]
+  },
+  {
+   "slug": "demo-circuithub",
+   "name": "CircuitHub",
+   "brandColor": "#2E77D0",
+   "category": "electronics",
+   "products": [
+    {
+     "title": "5G smartphone 128GB",
+     "emoji": "📱",
+     "category": "electronics-mobiles-and-tablets",
+     "price": 14999,
+     "mrp": 17999,
+     "hsn": "8517",
+     "image": "demo-circuithub-01.jpg"
+    },
+    {
+     "title": "14-inch thin laptop",
+     "emoji": "💻",
+     "category": "electronics-laptops-and-computers",
+     "price": 54999,
+     "mrp": 62999,
+     "hsn": "8471",
+     "image": "demo-circuithub-02.jpg"
+    },
+    {
+     "title": "Wireless headphones",
+     "emoji": "🎧",
+     "category": "electronics-audio",
+     "price": 1999,
+     "mrp": 3299,
+     "hsn": "8517",
+     "image": "demo-circuithub-03.jpg"
+    },
+    {
+     "title": "Bluetooth speaker",
+     "emoji": "🔊",
+     "category": "electronics-audio",
+     "price": 1450,
+     "mrp": 1999,
+     "hsn": "8517",
+     "image": "demo-circuithub-04.jpg"
+    },
+    {
+     "title": "Fitness smartwatch",
+     "emoji": "⌚",
+     "category": "electronics-accessories",
+     "price": 3999,
+     "mrp": 5999,
+     "hsn": "8517",
+     "image": "demo-circuithub-05.jpg"
+    },
+    {
+     "title": "Mechanical keyboard",
+     "emoji": "⌨️",
+     "category": "electronics-laptops-and-computers",
+     "price": 1299,
+     "mrp": null,
+     "hsn": "8471",
+     "image": "demo-circuithub-06.jpg"
+    },
+    {
+     "title": "Wireless mouse",
+     "emoji": "🖱️",
+     "category": "electronics-laptops-and-computers",
+     "price": 599,
+     "mrp": 799,
+     "hsn": "8471",
+     "image": "demo-circuithub-07.jpg"
+    },
+    {
+     "title": "Mirrorless camera",
+     "emoji": "📷",
+     "category": "electronics-accessories",
+     "price": 24999,
+     "mrp": null,
+     "hsn": "9999",
+     "image": "demo-circuithub-08.jpg"
+    },
+    {
+     "title": "43-inch smart TV",
+     "emoji": "📺",
+     "category": "electronics-tvs-and-appliances",
+     "price": 32999,
+     "mrp": 39999,
+     "hsn": "9999",
+     "image": "demo-circuithub-09.jpg"
+    },
+    {
+     "title": "USB-C fast charger",
+     "emoji": "🔌",
+     "category": "electronics-accessories",
+     "price": 699,
+     "mrp": 999,
+     "hsn": "9999",
+     "image": "demo-circuithub-10.jpg"
+    }
+   ]
+  },
+  {
+   "slug": "demo-casa-home",
+   "name": "Casa Home",
+   "brandColor": "#C27C2C",
+   "category": "home",
+   "products": [
+    {
+     "title": "Non-stick frying pan",
+     "emoji": "🍳",
+     "category": "home-cookware",
+     "price": 899,
+     "mrp": 1299,
+     "hsn": "9999",
+     "image": "demo-casa-home-01.jpg"
+    },
+    {
+     "title": "Ceramic planter with plant",
+     "emoji": "🪴",
+     "category": "home-home-decor",
+     "price": 349,
+     "mrp": null,
+     "hsn": "9999",
+     "image": "demo-casa-home-02.jpg"
+    },
+    {
+     "title": "Warm LED desk lamp",
+     "emoji": "💡",
+     "category": "home-home-decor",
+     "price": 799,
+     "mrp": 999,
+     "hsn": "9999",
+     "image": "demo-casa-home-03.jpg"
+    },
+    {
+     "title": "Solid wood dining chair",
+     "emoji": "🪑",
+     "category": "home-furniture",
+     "price": 3499,
+     "mrp": 4999,
+     "hsn": "9403",
+     "image": "demo-casa-home-04.jpg"
+    },
+    {
+     "title": "Woven laundry basket",
+     "emoji": "🧺",
+     "category": "home-storage",
+     "price": 299,
+     "mrp": null,
+     "hsn": "9999",
+     "image": "demo-casa-home-05.jpg"
+    }
+   ]
+  }
+ ],
+ "banners": [
+  {
+   "file": "demo-banner-1.jpg",
+   "title": "Fresh fruit & veggies, delivered today",
+   "subtitle": "Up to 25% off farm-fresh produce from local stores.",
+   "ctaLabel": "Shop grocery",
+   "linkUrl": "/category/grocery"
+  },
+  {
+   "file": "demo-banner-2.jpg",
+   "title": "The new season edit",
+   "subtitle": "Up to 40% off dresses, sneakers and accessories.",
+   "ctaLabel": "Shop fashion",
+   "linkUrl": "/category/fashion"
+  },
+  {
+   "file": "demo-banner-3.jpg",
+   "title": "Tech deals of the week",
+   "subtitle": "Headphones, phones and smartwatches at their lowest prices.",
+   "ctaLabel": "See the deals",
+   "linkUrl": "/products?sort=deals"
+  }
+ ]
+}

@@ -1,5 +1,5 @@
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from './ui/sidebar'
-import { BarChart3Icon, LayoutDashboardIcon, LayoutGridIcon, LogOut, MegaphoneIcon, Settings, ShieldCheckIcon, ShoppingBagIcon, Store, Truck, Users } from 'lucide-react'
+import { BarChart3Icon, LayoutDashboardIcon, LayoutGridIcon, LayoutTemplateIcon, LogOut, MegaphoneIcon, Settings, ShieldCheckIcon, ShoppingBagIcon, Store, Truck, Users } from 'lucide-react'
 import PlatfromLogo from '@/assets/platform-logo.png'
 import { useLocation, useNavigate } from 'react-router'
 import { cn } from '@/lib/utils'
@@ -21,6 +21,7 @@ const AppSidebar = () => {
         { href: "/dashboard/sellers", label: "Sellers", Icon: Store, module: "SELLERS" },
         { href: "/dashboard/commision-payouts", label: "Commision & Payouts", Icon: Store, module: "COMMISSION_PAYOUTS" },
         { href: "/dashboard/global-catalog", label: "Global Catalog", Icon: LayoutGridIcon, module: "GLOBAL_CATALOG" },
+        { href: "/dashboard/storefront", label: "Storefront", Icon: LayoutTemplateIcon, module: "STOREFRONT" },
         { href: "/dashboard/delivery-network", label: "Delivery Network", Icon: Truck, module: "DELIVERY_NETWORK" },
         { href: "/dashboard/customers", label: "Customers", Icon: Users, module: "CUSTOMERS" },
         { href: "/dashboard/orders", label: "Orders", Icon: ShoppingBagIcon, module: "ORDERS" },

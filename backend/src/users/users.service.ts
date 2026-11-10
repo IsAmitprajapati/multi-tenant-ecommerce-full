@@ -58,6 +58,12 @@ export class UsersService {
     if (!data.password) {
       throw new BadRequestException("Password is required")
     }
+    if (data.currentPassword !== undefined) {
+      const current = await this.prisma.user.findUnique({ where: { id }, select: { passwordHash: true } })
+      if (!current || !(await bcrypt.compare(data.currentPassword, current.passwordHash))) {
+        throw new BadRequestException("Current password is incorrect")
+      }
+    }
     const passswordHash = await bcrypt.hash(data.password!, 10)
 
     try {

@@ -221,6 +221,20 @@ async function main() {
 
     console.log("\n User Create done.")
 
+    await seedHomeSections()
+}
+
+/** Starter customer home page — only when the admin hasn't set one up yet (empty rows are hidden on the storefront) */
+async function seedHomeSections() {
+    if (await prisma.homeSection.count()) return
+    const defaults = [
+        { type: 'SHOP_BY_CATEGORY' as const, title: 'Shop by category', source: null },
+        { type: 'PRODUCTS' as const, title: 'Deals of the day', source: 'DEALS' as const },
+        { type: 'PRODUCTS' as const, title: 'Trending now', source: 'TRENDING' as const },
+        { type: 'PRODUCTS' as const, title: 'New arrivals', source: 'LATEST' as const },
+    ]
+    await prisma.homeSection.createMany({ data: defaults.map((d, i) => ({ ...d, sortOrder: i })) })
+    console.log(" Home page sections seeded.")
 }
 
 
