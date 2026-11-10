@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus, Put, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus, Put, UseGuards, Query } from '@nestjs/common';
 import { UsersService } from './users.service.js';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
@@ -23,5 +23,14 @@ export class UsersController {
   async ChangePassword(@CurrentUser() user: JwtAccessPayload, @Body() data: UpdateUserDto) {
     return this.usersService.changePassword(user?.userId, data)
   }
-  
+
+  @Get('/admin')
+  @UseGuards(JwtAuthGuard)
+  async getAdminUsers(@CurrentUser() user: JwtAccessPayload,@Query('userId') userId : string) {
+    const response = await this.usersService.getAdminUsers(user.userType,userId)
+
+    return response
+  }
+
+
 }

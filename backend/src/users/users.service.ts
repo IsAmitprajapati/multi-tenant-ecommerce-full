@@ -3,6 +3,7 @@ import { CreateUserDto } from './dto/create-user.dto.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import bcrypt from 'bcryptjs';
+import { UserType } from '../generated/prisma/enums.js';
 
 @Injectable()
 export class UsersService {
@@ -64,7 +65,7 @@ export class UsersService {
           id: id
         },
         data: {
-          passwordUpdatedAt : new Date(),
+          passwordUpdatedAt: new Date(),
           passwordHash: passswordHash
         }
       })
@@ -73,10 +74,39 @@ export class UsersService {
         success: true,
         message: "Password Change successfully"
       }
-    }catch(error){
+    } catch (error) {
       throw new BadRequestException("Failed to change password")
     }
-    
+
+  }
+
+  /****Users */
+  async getAdminUsers(userType: UserType, userId: string) {
+
+    const users = await this.prisma.user.findMany({
+      where: {
+        userType: userType,
+        ...(
+          userId && {
+            id: userId
+          }
+        )
+      },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        status: true,
+        updatedAt: true,
+        phone: true,
+      }
+    })
+
+    return {
+      data: users,
+      message: "Users fetch successfully!"
+    }
+
   }
 
 

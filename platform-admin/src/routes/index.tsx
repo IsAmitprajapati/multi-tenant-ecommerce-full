@@ -10,6 +10,10 @@ import VerifyForgotOtpPage from "@/pages/auth/VerifyForgotOtp";
 import CommisionPayoutPages from "@/pages/dashboard/commision-payouts/CommisionPayoutPages";
 import DashboardPage from "@/pages/dashboard/DashboardPage";
 import SellersPage from "@/pages/dashboard/sellers/SellersPage";
+import CreateUserPage from "@/pages/user-permissions/CreateUser";
+import RolesPage from "@/pages/user-permissions/RolesPage";
+import UpdateUserPage from "@/pages/user-permissions/UpdateUserPage";
+import UsersPage from "@/pages/user-permissions/UsersPage";
 import { Route, Routes } from "react-router";
 
 export default function Routers() {
@@ -33,6 +37,14 @@ export default function Routers() {
                     <Route path="commision-payouts" element={<CommisionPayoutPages />} />
                     <Route path="my-account" element={<ProfileDetailsPage />} />
 
+                    {/***Users & Permissions */}
+                    <Route path="users-permissions">
+                        <Route index element={<UsersPage />} />
+                        <Route path="user" element={<UsersPage />} />
+                        <Route path="user/create" element={<CreateUserPage />} />
+                        <Route path="user/edit" element={<UpdateUserPage />} />
+                        <Route path="role" element={<RolesPage />} />
+                    </Route>
                 </Route>
             </Route>
 
