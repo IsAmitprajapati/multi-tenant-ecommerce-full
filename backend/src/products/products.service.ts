@@ -89,11 +89,13 @@ export class ProductsService {
   private async sellerOf(actorId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: actorId },
-      select: { seller: { select: { id: true, name: true, status: true, category: true } } },
+      select: { seller: { select: { id: true, name: true, status: true, categories: { select: { categoryId: true } } } } },
     });
     if (!user?.seller) throw new ForbiddenException('You are not part of a seller account');
     if (user.seller.status !== 'ACTIVE') throw new ForbiddenException('Your seller account is not active');
-    return user.seller;
+    const { categories, ...seller } = user.seller;
+    /** Top-level categories the seller sells in (chosen at onboarding) */
+    return { ...seller, categoryIds: categories.map((c) => c.categoryId) };
   }
 
   private async findOwned(sellerId: string, id: string) {
@@ -149,19 +151,19 @@ export class ProductsService {
   async meta(actorId: string) {
     const seller = await this.sellerOf(actorId);
     const [tops, taxClasses, brands] = await Promise.all([
+      // Only the seller's own categories — each with its active sub-categories
       this.prisma.productCategory.findMany({
-        where: { parentId: null, isActive: true },
-        orderBy: { sortOrder: 'asc' },
+        where: { id: { in: seller.categoryIds }, parentId: null, isActive: true },
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
         select: {
-          id: true, name: true, sellerCategory: true, requiresFssai: true,
-          children: { where: { isActive: true }, orderBy: { sortOrder: 'asc' }, select: { id: true, name: true } },
+          id: true, name: true, requiresFssai: true,
+          children: { where: { isActive: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], select: { id: true, name: true } },
         },
       }),
       this.prisma.taxClass.findMany({ where: { isActive: true }, orderBy: [{ gstRatePercent: 'asc' }, { hsnCode: 'asc' }] }),
       this.prisma.brand.findMany({ where: { sellerId: seller.id }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
     ]);
-    // The seller's own category first
-    const categories = [...tops].sort((a, b) => Number(b.sellerCategory === seller.category) - Number(a.sellerCategory === seller.category));
+    const categories = tops;
     return {
       data: {
         categories,
@@ -220,11 +222,15 @@ export class ProductsService {
 
   /* ----------------------------- Validation ----------------------------- */
 
-  private async checkRefs(sellerId: string, dto: UpdateProductDto, productId?: string) {
-    if (dto.categoryId) {
+  private async checkRefs(seller: { id: string; categoryIds: string[] }, dto: UpdateProductDto, productId?: string, currentCategoryId?: string) {
+    const sellerId = seller.id;
+    if (dto.categoryId && dto.categoryId !== currentCategoryId) {
       const cat = await this.prisma.productCategory.findUnique({ where: { id: dto.categoryId }, select: { isActive: true, parentId: true } });
-      if (!cat || !cat.isActive) throw new BadRequestException('Choose a valid category');
+      if (!cat || !cat.isActive) throw new BadRequestException('Choose a valid sub-category');
       if (!cat.parentId) throw new BadRequestException('Choose a sub-category (e.g. Fruits under Grocery & food)');
+      if (!seller.categoryIds.includes(cat.parentId)) {
+        throw new BadRequestException('This sub-category isn’t in one of your seller categories');
+      }
     }
     if (dto.taxClassId) {
       const tax = await this.prisma.taxClass.findUnique({ where: { id: dto.taxClassId }, select: { isActive: true } });
@@ -297,7 +303,7 @@ export class ProductsService {
 
   async create(actorId: string, dto: CreateProductDto) {
     const seller = await this.sellerOf(actorId);
-    await this.checkRefs(seller.id, dto);
+    await this.checkRefs(seller, dto);
     const slug = dto.slug ?? (await this.uniqueSlug(seller.id, slugify(dto.title)));
     const images = await this.resolveImages((dto.images ?? []).map((i) => i.fileId));
     const brandId = await this.brandId(seller.id, dto.brandName);
@@ -361,7 +367,7 @@ export class ProductsService {
   async update(actorId: string, id: string, dto: UpdateProductDto) {
     const seller = await this.sellerOf(actorId);
     const existing = await this.findOwned(seller.id, id);
-    await this.checkRefs(seller.id, dto, id);
+    await this.checkRefs(seller, dto, id, existing.categoryId);
 
     for (const v of dto.variants ?? []) {
       if (v.id && !existing.variants.some((ev) => ev.id === v.id)) throw new BadRequestException('Unknown variant');

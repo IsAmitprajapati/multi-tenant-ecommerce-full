@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Spinner } from '@/components/ui/spinner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { getAxiosErrorMessage } from '@/lib/api.error'
 import { useAppSelector } from '@/hooks/use-store'
@@ -107,13 +107,21 @@ export default function ProductFormPage() {
     const [slugState, setSlugState] = useState<{ checking: boolean; available: boolean | null; reason: string | null }>({ checking: false, available: null, reason: null })
     const [pincodeDraft, setPincodeDraft] = useState('')
     const [adjustOpen, setAdjustOpen] = useState(false)
+    /** Top-level category chosen first; sub-categories are filtered by it */
+    const [parentCategoryId, setParentCategoryId] = useState('')
 
     useEffect(() => {
         Promise.all([productsApi.meta(), productId ? productsApi.get(productId) : Promise.resolve(null)])
             .then(([m, p]) => {
                 setMeta(m.data)
-                if (p) { setProduct(p.data); setForm(toForm(p.data)); setSlugTouched(true) }
-                else setForm(f => ({ ...f, taxClassId: m.data.taxClasses.find(t => t.hsnCode === '9999')?.id ?? m.data.taxClasses[0]?.id ?? '' }))
+                if (p) {
+                    setProduct(p.data); setForm(toForm(p.data)); setSlugTouched(true)
+                    setParentCategoryId(p.data.category.parent?.id ?? '')
+                } else {
+                    setForm(f => ({ ...f, taxClassId: m.data.taxClasses.find(t => t.hsnCode === '9999')?.id ?? m.data.taxClasses[0]?.id ?? '' }))
+                    // A seller with a single category doesn't need to pick it
+                    if (m.data.categories.length === 1) setParentCategoryId(m.data.categories[0].id)
+                }
             })
             .catch(err => {
                 toast.error(getAxiosErrorMessage(err, 'Could not load the product'))
@@ -139,7 +147,7 @@ export default function ProductFormPage() {
     const set = <K extends keyof Form>(k: K, v: Form[K]) => { setForm(f => ({ ...f, [k]: v })); setErrors(e => ({ ...e, [k as string]: '' })) }
     const setVariant = (key: string, patch: Partial<VariantRow>) => { setForm(f => ({ ...f, variants: f.variants.map(v => (v.key === key ? { ...v, ...patch } : v)) })); setErrors(e => ({ ...e, variants: '' })) }
 
-    const category = useMemo(() => meta?.categories.find(c => c.children.some(ch => ch.id === form.categoryId)), [meta, form.categoryId])
+    const category = useMemo(() => meta?.categories.find(c => c.id === parentCategoryId), [meta, parentCategoryId])
     const taxClass = meta?.taxClasses.find(t => t.id === form.taxClassId)
     const hasVariants = form.variants.length > 0
     const price = money(form.sellingPrice) ?? 0
@@ -152,7 +160,8 @@ export default function ProductFormPage() {
     const validate = () => {
         const e: Record<string, string> = {}
         if (form.title.trim().length < 2) e.title = 'Enter a product name'
-        if (!form.categoryId) e.categoryId = 'Choose a category'
+        if (!parentCategoryId) e.categoryId = 'Choose a category'
+        else if (!form.categoryId) e.categoryId = 'Choose a sub-category'
         if (!(price > 0)) e.sellingPrice = 'Enter a selling price'
         if (compareAt != null && compareAt > 0 && compareAt <= price) e.compareAtPrice = 'Must be higher than the selling price'
         if (!form.taxClassId) e.taxClassId = 'Choose a tax class'
@@ -294,20 +303,29 @@ export default function ProductFormPage() {
                             <Textarea id='description' rows={6} maxLength={5000} placeholder='What is it, what makes it good, size/weight, care instructions…'
                                 value={form.description} onChange={e => set('description', e.target.value)} />
                         </Field>
-                        <Field label='Category' error={errors.categoryId} hint={category?.requiresFssai ? 'Food item — your FSSAI license covers this listing' : undefined}>
-                            <Select value={form.categoryId} onValueChange={v => set('categoryId', v)}>
-                                <SelectTrigger className='h-10! w-full' aria-invalid={!!errors.categoryId}><SelectValue placeholder='Choose a category' /></SelectTrigger>
-                                <SelectContent position='popper' className='max-h-80'>
-                                    {meta.categories.map(c => (
-                                        <SelectGroup key={c.id}>
-                                            <SelectLabel>{c.name}</SelectLabel>
-                                            {c.children.map(ch => <SelectItem key={ch.id} value={ch.id}>{ch.name}</SelectItem>)}
-                                        </SelectGroup>
-                                    ))}
+                        <Field label='Category' error={!parentCategoryId ? errors.categoryId : undefined}
+                            hint={meta.categories.length === 0 ? 'Your seller account has no categories — contact platform support.' : category?.requiresFssai ? 'Food item — your FSSAI license covers this listing' : undefined}>
+                            <Select value={parentCategoryId} onValueChange={v => {
+                                setParentCategoryId(v)
+                                // keep the sub-category only if it belongs to the newly chosen category
+                                if (!meta.categories.find(c => c.id === v)?.children.some(ch => ch.id === form.categoryId)) set('categoryId', '')
+                            }}>
+                                <SelectTrigger className='h-10! w-full' aria-invalid={!!errors.categoryId && !parentCategoryId}><SelectValue placeholder='Choose a category' /></SelectTrigger>
+                                <SelectContent position='popper'>
+                                    {meta.categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         </Field>
-                        <Field label='Brand' htmlFor='brand' hint='Leave empty for “No brand”. New brand names are saved for next time.'>
+                        <Field label='Sub-category' error={parentCategoryId ? errors.categoryId : undefined}
+                            hint={!parentCategoryId ? 'Choose a category first' : category && category.children.length === 0 ? 'No sub-categories in this category yet — contact platform support.' : undefined}>
+                            <Select value={form.categoryId} onValueChange={v => set('categoryId', v)} disabled={!category || category.children.length === 0}>
+                                <SelectTrigger className='h-10! w-full' aria-invalid={!!errors.categoryId && !!parentCategoryId}><SelectValue placeholder={category ? 'Choose a sub-category' : '—'} /></SelectTrigger>
+                                <SelectContent position='popper' className='max-h-80'>
+                                    {category?.children.map(ch => <SelectItem key={ch.id} value={ch.id}>{ch.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </Field>
+                        <Field label='Brand' htmlFor='brand' className='sm:col-span-2' hint='Leave empty for “No brand”. New brand names are saved for next time.'>
                             <Input id='brand' className='h-10' list='brand-options' placeholder='No brand' maxLength={80} value={form.brandName} onChange={e => set('brandName', e.target.value)} />
                             <datalist id='brand-options'>{meta.brands.map(b => <option key={b.id} value={b.name} />)}</datalist>
                         </Field>

@@ -6,9 +6,12 @@ export type BusinessType = 'SOLE_PROPRIETORSHIP' | 'PARTNERSHIP' | 'LLP' | 'PRIV
 export type KycDocumentType = 'AADHAAR' | 'PAN' | 'BUSINESS_REGISTRATION_CERTIFICATE' | 'FSSAI' | 'OTHER'
 export type UploadKind = 'logo' | 'kyc' | 'product'
 
+/** A top-level category from Global catalog (managed by the platform admin) */
 export interface SellerCategory {
-    key: string
-    label: string
+    id: string
+    name: string
+    description: string | null
+    /** Default commission % for sellers in this category */
     commissionRate: number
     requiresFssai: boolean
 }
@@ -40,7 +43,8 @@ export interface SellerApplication {
     name: string
     slug: string
     publicUrl: string
-    category: string
+    categories: { id: string; name: string }[]
+    /** Category names joined with ", " */
     categoryLabel: string
     logoUrl: string | null
     brandColor: string
@@ -77,7 +81,8 @@ export interface SellerApplicationPayload {
     profile: {
         name: string
         slug: string
-        category: string
+        /** One or more top-level categories */
+        categoryIds: string[]
         brandColor: string
         logoFileId?: string
     }

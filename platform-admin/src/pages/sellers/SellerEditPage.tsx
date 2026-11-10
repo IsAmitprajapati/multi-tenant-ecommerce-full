@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { isAxiosError } from 'axios'
-import { Building2Icon, CheckIcon, CircleCheckIcon, CircleXIcon, Loader2Icon, PaletteIcon, PercentIcon, UserIcon } from 'lucide-react'
+import { Building2Icon, LayoutGridIcon, CheckIcon, CircleCheckIcon, CircleXIcon, Loader2Icon, PaletteIcon, PercentIcon, UserIcon } from 'lucide-react'
 import PageHeader, { scrollPageToTop } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,6 +16,7 @@ import { usePermission } from '@/hooks/use-permission'
 import { getAxiosErrorMessage } from '@/lib/api.error'
 import { cn, displayUrl } from '@/lib/utils'
 import { sellerApi, type BusinessType, type ISellerDetail, type SellerMeta } from '@/api/seller'
+import CategoryMultiSelect, { summarizeCategories } from '@/components/catalog/CategoryMultiSelect'
 import FileUploadTile, { type UploadValue } from './_component/FileUploadTile'
 
 const GST = /^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/
@@ -33,7 +34,7 @@ const schema = z.object({
     ownerPhone: z.string().transform(v => v.replace(/[\s-]/g, '')).refine(v => PHONE.test(v), 'Enter a valid phone number'),
     name: z.string().trim().min(2, 'Seller name is required'),
     slug: z.string().min(3, 'Use at least 3 characters').max(50).regex(SLUG, 'Only lowercase letters, numbers and hyphens'),
-    category: z.string().min(1, 'Select a category'),
+    categoryIds: z.array(z.string()).min(1, 'Choose at least one category'),
     brandColor: z.string().min(1),
     commissionRate: z.string().refine(v => v !== '' && !Number.isNaN(Number(v)) && Number(v) >= 0 && Number(v) <= 50, 'Enter a rate between 0 and 50'),
 })
@@ -102,7 +103,7 @@ const SellerEditPage = () => {
                     ownerPhone: d.businessDetails?.contactPersonMobile ?? d.owner.phone ?? '',
                     name: d.name,
                     slug: d.slug,
-                    category: d.category,
+                    categoryIds: d.categories.map(c => c.id),
                     brandColor: d.brandColor,
                     commissionRate: String(d.commissionRate),
                 })
@@ -143,8 +144,9 @@ const SellerEditPage = () => {
         )
     }
 
-    const set = (k: keyof Form, v: string) => { setForm(f => f && ({ ...f, [k]: v })); setErrors(e => ({ ...e, [k]: undefined })) }
-    const category = meta.categories.find(c => c.key === form.category)
+    const setCategories = (ids: string[]) => { setForm(f => f && ({ ...f, categoryIds: ids })); setErrors(e => ({ ...e, categoryIds: undefined })) }
+    const set = (k: Exclude<keyof Form, 'categoryIds'>, v: string) => { setForm(f => f && ({ ...f, [k]: v })); setErrors(e => ({ ...e, [k]: undefined })) }
+    const catSummary = summarizeCategories(meta.categories, form.categoryIds)
     const pageBase = displayUrl(meta.sellerPageBase)
     const currentLogo: UploadValue | null =
         logo === undefined ? (seller.logoUrl ? { fileId: seller.id, name: 'Current logo', url: seller.logoUrl } : null) : logo
@@ -173,7 +175,7 @@ const SellerEditPage = () => {
                 profile: {
                     name: v.name,
                     slug: v.slug,
-                    category: v.category,
+                    categoryIds: v.categoryIds,
                     brandColor: v.brandColor,
                     ...(logo && { logoFileId: logo.fileId }),
                     ...(logo === null && { removeLogo: true }),
@@ -251,6 +253,17 @@ const SellerEditPage = () => {
                             <Input className='h-10' value={seller.owner.email} disabled readOnly />
                         </Field>
                     </Section>
+
+                    <Card>
+                        <CardHeader className='border-b'>
+                            <CardTitle className='flex items-center gap-2 text-base font-semibold'><LayoutGridIcon className='size-4 text-primary' /> Categories</CardTitle>
+                            <CardDescription>What this seller sells. Their products are filed under these categories’ sub-categories. Changing this doesn’t change the commission — edit that separately.</CardDescription>
+                        </CardHeader>
+                        <CardContent className='grid gap-2'>
+                            <CategoryMultiSelect options={meta.categories} value={form.categoryIds} onChange={setCategories} invalid={!!errors.categoryIds} disabled={saving} />
+                            {errors.categoryIds && <p className='text-xs text-destructive'>{errors.categoryIds}</p>}
+                        </CardContent>
+                    </Card>
                 </div>
 
                 <div className='grid content-start gap-6'>
@@ -276,15 +289,6 @@ const SellerEditPage = () => {
                                                 : slugState.available === false ? <CircleXIcon className='size-4 text-destructive' /> : null}
                                     </span>
                                 </div>
-                            </Field>
-                            <Field label='Category' error={errors.category}
-                                hint={category?.requiresFssai ? 'FSSAI license required for this category' : undefined}>
-                                <Select value={form.category} onValueChange={v => set('category', v)}>
-                                    <SelectTrigger className='h-10! w-full'><SelectValue /></SelectTrigger>
-                                    <SelectContent position='popper'>
-                                        {meta.categories.map(c => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
                             </Field>
                             <Field label='Logo'>
                                 <FileUploadTile kind='logo' label={currentLogo ? 'Logo' : 'Upload logo'} hint='PNG, JPG or WEBP · up to 5 MB'
@@ -316,7 +320,7 @@ const SellerEditPage = () => {
                         </CardHeader>
                         <CardContent>
                             <Field label='Commission rate (%)' htmlFor='commissionRate' error={errors.commissionRate}
-                                hint={category ? `${category.label} default is ${category.commissionRate}%` : undefined}>
+                                hint={catSummary.commissionRate != null ? `Category default is ${catSummary.commissionRate}%${catSummary.chosen.length > 1 ? ' (highest of its categories)' : ''}` : undefined}>
                                 <Input id='commissionRate' className='h-10' type='number' min={0} max={50} step='0.5'
                                     value={form.commissionRate} disabled={!canEditCommission} aria-invalid={!!errors.commissionRate}
                                     onChange={e => set('commissionRate', e.target.value)} />

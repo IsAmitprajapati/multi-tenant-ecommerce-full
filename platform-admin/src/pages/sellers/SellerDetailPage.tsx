@@ -304,7 +304,7 @@ const SellerDetailPage = () => {
                                     <ExternalLinkIcon className='size-3.5 shrink-0' />
                                 </a>
                             </Detail>
-                            <Detail label='Category'>{seller.categoryLabel}</Detail>
+                            <Detail label={seller.categories.length > 1 ? 'Categories' : 'Category'}>{seller.categoryLabel}</Detail>
                             <Detail label='Brand color'>
                                 <span className='inline-flex items-center gap-2'>
                                     <span className='inline-block size-5 rounded-md border' style={{ background: seller.brandColor }} />

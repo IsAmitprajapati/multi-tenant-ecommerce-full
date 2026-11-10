@@ -213,8 +213,6 @@ model Seller {
   name                String
   /// Public page: marketplace.platform.com/seller/<slug>
   slug                String           @unique
-  /// Category key, see src/sellers/sellers.constants.ts
-  category            String
   /// ImageKit public URL + fileId of the seller logo
   logoUrl             String?          @map("logo_url")
   logoFileId          String?          @map("logo_file_id")
@@ -240,6 +238,8 @@ model Seller {
   kycDocuments    SellerKycDocument[]
   users           User[]                 @relation("SellerUsers")
   roles           Role[]                 @relation("SellerRoles")
+  /// Top-level product categories this seller sells in (chosen at onboarding)
+  categories      SellerCategory[]
   products        Product[]
   brands          Brand[]
 
@@ -323,18 +323,22 @@ enum InventoryAdjustmentReason {
 
 /// Platform product taxonomy (read-only for sellers)
 model ProductCategory {
-  id             String            @id @default(cuid())
-  name           String
-  slug           String            @unique
-  parentId       String?           @map("parent_id")
-  parent         ProductCategory?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
-  children       ProductCategory[] @relation("CategoryTree")
-  /// Matches the seller category key (grocery, fashion, …) for top-level categories
-  sellerCategory String?           @map("seller_category")
-  requiresFssai  Boolean           @default(false) @map("requires_fssai")
-  isActive       Boolean           @default(true) @map("is_active")
-  sortOrder      Int               @default(0) @map("sort_order")
-  products       Product[]
+  id                    String            @id @default(cuid())
+  name                  String
+  slug                  String            @unique
+  parentId              String?           @map("parent_id")
+  parent                ProductCategory?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children              ProductCategory[] @relation("CategoryTree")
+  description           String?
+  /// Default commission % for sellers in this (top-level) category
+  defaultCommissionRate Decimal?          @map("default_commission_rate") @db.Decimal(5, 2)
+  requiresFssai         Boolean           @default(false) @map("requires_fssai")
+  isActive              Boolean           @default(true) @map("is_active")
+  sortOrder             Int               @default(0) @map("sort_order")
+  products              Product[]
+  sellerCategories      SellerCategory[]
+  createdAt             DateTime          @default(now()) @map("created_at")
+  updatedAt             DateTime          @default(now()) @updatedAt @map("updated_at")
 
   @@index([parentId])
   @@map("product_categories")
@@ -471,4 +475,17 @@ model InventoryAdjustment {
 
   @@index([productId, createdAt])
   @@map("inventory_adjustments")
+}
+
+/// Which top-level categories a seller sells in
+model SellerCategory {
+  sellerId   String          @map("seller_id")
+  seller     Seller          @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  categoryId String          @map("category_id")
+  category   ProductCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  createdAt  DateTime        @default(now()) @map("created_at")
+
+  @@id([sellerId, categoryId])
+  @@index([categoryId])
+  @@map("seller_categories")
 }

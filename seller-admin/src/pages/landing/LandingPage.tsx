@@ -1,4 +1,7 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
+import Axios from '@/lib/axios'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
     ArrowRightIcon, BadgeCheckIcon, ClipboardListIcon, ClockIcon, PaletteIcon, RocketIcon, ShieldCheckIcon,
     StarIcon, StoreIcon, TruckIcon, WalletIcon,
@@ -24,11 +27,6 @@ const FEATURES = [
     { icon: StoreIcon, title: 'Your own branded seller page', text: 'Your logo and brand color on a fast, mobile-ready page — no design work needed.' },
 ]
 
-const COMMISSION = [
-    { label: 'Grocery & food', rate: 8 },
-    { label: 'Fashion & apparel', rate: 12 },
-    { label: 'Electronics', rate: 6 },
-]
 
 const TESTIMONIALS = [
     { quote: 'We went from a single physical shop to 40 orders a day within two months — the delivery network meant we didn’t have to hire riders.', name: 'Meera Pillai', business: 'Green Grocer, Bengaluru' },
@@ -43,8 +41,17 @@ const FAQ = [
     { q: 'Can I sell alongside my own website?', a: 'Yes — most sellers use the marketplace as an additional sales channel, not a replacement for their existing shop.' },
 ]
 
+interface PublicCategory { name: string; description: string | null; defaultCommissionRate: number; requiresFssai: boolean }
+
 export default function LandingPage() {
     const signedIn = Boolean(useAppSelector(s => s.auth.accessToken))
+    // Live categories + default commission from Global catalog (no login needed)
+    const [categories, setCategories] = useState<PublicCategory[] | null>(null)
+    useEffect(() => {
+        Axios.get<{ data: PublicCategory[] }>('/public/seller-categories')
+            .then(r => setCategories(r.data.data))
+            .catch(() => setCategories([]))
+    }, [])
     const primaryCta = signedIn ? { to: '/dashboard', label: 'Go to dashboard' } : { to: '/apply', label: 'Start selling — it’s free' }
 
     return (
@@ -130,14 +137,18 @@ export default function LandingPage() {
                 <p className='mx-auto mt-3 max-w-2xl text-center text-muted-foreground'>
                     Commission is a flat percentage of each order, deducted at payout. No listing fees, no setup cost, no subscription.
                 </p>
-                <div className='mx-auto mt-10 grid max-w-4xl gap-6 sm:grid-cols-3'>
-                    {COMMISSION.map(c => (
-                        <div key={c.label} className='rounded-2xl border bg-card p-6 text-center'>
-                            <div className='text-sm font-semibold text-muted-foreground'>{c.label}</div>
-                            <div className='mt-2 text-4xl font-bold text-primary'>{c.rate}%</div>
-                            <div className='mt-1 text-xs text-muted-foreground'>Default rate for this category, set on approval</div>
-                        </div>
-                    ))}
+                <div className='mx-auto mt-10 grid max-w-5xl gap-6 sm:grid-cols-2 lg:grid-cols-3'>
+                    {categories === null
+                        ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className='h-32 rounded-2xl' />)
+                        : categories.map(c => (
+                            <div key={c.name} className='rounded-2xl border bg-card p-6 text-center'>
+                                <div className='text-sm font-semibold text-muted-foreground'>{c.name}</div>
+                                <div className='mt-2 text-4xl font-bold text-primary'>{c.defaultCommissionRate}%</div>
+                                <div className='mt-1 text-xs text-muted-foreground'>
+                                    Default rate for this category, set on approval{c.requiresFssai ? ' · FSSAI license needed' : ''}
+                                </div>
+                            </div>
+                        ))}
                 </div>
                 <p className='mt-6 text-center text-xs text-muted-foreground'>
                     Your exact rate is confirmed during review and always visible in your dashboard.

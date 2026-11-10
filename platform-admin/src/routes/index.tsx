@@ -14,6 +14,9 @@ import SellersPage from "@/pages/sellers/SellersPage";
 import OnboardSellerPage from "@/pages/sellers/OnboardSellerPage";
 import SellerDetailPage from "@/pages/sellers/SellerDetailPage";
 import SellerEditPage from "@/pages/sellers/SellerEditPage";
+import CategoriesPage from "@/pages/catalog/CategoriesPage";
+import CategoryDetailPage from "@/pages/catalog/CategoryDetailPage";
+import CategoryFormPage from "@/pages/catalog/CategoryFormPage";
 import CreateUserPage from "@/pages/user-permissions/CreateUser";
 import RolesPage from "@/pages/user-permissions/RolesPage";
 import RoleFormPage from "@/pages/user-permissions/RoleFormPage";
@@ -48,6 +51,17 @@ export default function Routers() {
                     </Route>
                     <Route path="commision-payouts" element={<CommisionPayoutPages />} />
                     <Route path="my-account" element={<ProfileDetailsPage />} />
+
+                    {/***Global catalog */}
+                    <Route path="global-catalog" element={<PermissionRoute module="GLOBAL_CATALOG" level="VIEW" />}>
+                        <Route index element={<Navigate to="categories" replace />} />
+                        <Route path="categories" element={<CategoriesPage />} />
+                        <Route path="categories/:categoryId" element={<CategoryDetailPage />} />
+                        <Route element={<PermissionRoute module="GLOBAL_CATALOG" level="EDIT" />}>
+                            <Route path="categories/new" element={<CategoryFormPage />} />
+                            <Route path="categories/:categoryId/edit" element={<CategoryFormPage />} />
+                        </Route>
+                    </Route>
 
                     {/***Users & Permissions */}
                     <Route path="users-permissions" element={<PermissionRoute module="USERS_PERMISSIONS" level="VIEW" />}>

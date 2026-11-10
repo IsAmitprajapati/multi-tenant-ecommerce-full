@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import CategoryMultiSelect, { summarizeCategories } from '@/components/catalog/CategoryMultiSelect'
 import { cn, displayUrl } from '@/lib/utils'
 import { getAxiosErrorMessage } from '@/lib/api.error'
 import { sellerApi, type BusinessType, type KycDocumentType, type OnboardSellerPayload, type SellerMeta } from '@/api/seller'
@@ -38,7 +39,7 @@ const businessSchema = z.object({
 const profileSchema = z.object({
     name: z.string().trim().min(2, 'Seller name is required'),
     slug: z.string().min(3, 'Use at least 3 characters').max(50).regex(SLUG, 'Only lowercase letters, numbers and hyphens'),
-    category: z.string().min(1, 'Select a category'),
+    categoryIds: z.array(z.string()).min(1, 'Choose at least one category'),
     brandColor: z.string().min(1),
 })
 
@@ -115,7 +116,7 @@ const OnboardSellerPage = () => {
         legalBusinessName: '', businessType: '', registeredAddress: '', gstNumber: '', panNumber: '',
         ownerName: '', ownerPhone: '', ownerEmail: '',
     })
-    const [profile, setProfile] = useState<Profile>({ name: '', slug: '', category: '', brandColor: '' })
+    const [profile, setProfile] = useState<Profile>({ name: '', slug: '', categoryIds: [], brandColor: '' })
     const [slugTouched, setSlugTouched] = useState(false)
     const [slugState, setSlugState] = useState<{ checking: boolean; available: boolean | null; reason: string | null }>({ checking: false, available: null, reason: null })
     const [logo, setLogo] = useState<UploadValue | null>(null)
@@ -150,15 +151,17 @@ const OnboardSellerPage = () => {
         return () => clearTimeout(t)
     }, [profile.slug])
 
-    const category = meta?.categories.find(c => c.key === profile.category)
+    // Chosen categories → combined commission (highest) and FSSAI (any)
+    const catSummary = summarizeCategories(meta?.categories ?? [], profile.categoryIds)
     const requiredDocs = useMemo(
-        () => (meta?.kycDocuments ?? []).filter(d => !d.fssaiOnly || category?.requiresFssai),
-        [meta, category]
+        () => (meta?.kycDocuments ?? []).filter(d => !d.fssaiOnly || catSummary.requiresFssai),
+        [meta, catSummary.requiresFssai]
     )
     const uploadingBlocked = submitting
 
     const setB = (k: keyof Business, v: string) => { setBusiness(b => ({ ...b, [k]: v })); setErrors(e => ({ ...e, [k]: undefined })) }
-    const setP = (k: keyof Profile, v: string) => { setProfile(p => ({ ...p, [k]: v })); setErrors(e => ({ ...e, [k]: undefined })) }
+    const setCategories = (ids: string[]) => { setProfile(p => ({ ...p, categoryIds: ids })); setErrors(e => ({ ...e, categoryIds: undefined })) }
+    const setP = (k: Exclude<keyof Profile, 'categoryIds'>, v: string) => { setProfile(p => ({ ...p, [k]: v })); setErrors(e => ({ ...e, [k]: undefined })) }
 
     const collect = (issues: z.core.$ZodIssue[]) => {
         const out: Errors = {}
@@ -342,14 +345,9 @@ const OnboardSellerPage = () => {
                                             if (!slugTouched) setP('slug', slugify(e.target.value))
                                         }} />
                                 </Field>
-                                <Field label='Category' error={errors.category}
-                                    hint={category ? `Default commission ${category.commissionRate}%${category.requiresFssai ? ' · FSSAI license required' : ''}` : undefined}>
-                                    <Select value={profile.category} onValueChange={v => setP('category', v)}>
-                                        <SelectTrigger className='h-10! w-full' aria-invalid={!!errors.category}><SelectValue placeholder='Select category' /></SelectTrigger>
-                                        <SelectContent position='popper'>
-                                            {meta.categories.map(c => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
+                                <Field label='Categories' error={errors.categoryIds} className='sm:col-span-2'
+                                    hint='Choose everything they sell — products are then filed under these categories’ sub-categories.'>
+                                    <CategoryMultiSelect options={meta.categories} value={profile.categoryIds} onChange={setCategories} invalid={!!errors.categoryIds} disabled={submitting} />
                                 </Field>
                                 <Field label='Seller page' htmlFor='slug' error={errors.slug}>
                                     <div className={cn(
@@ -453,12 +451,12 @@ const OnboardSellerPage = () => {
                                     </span>
                                 </ReviewRow>
                                 <ReviewRow label='Seller page'>{pageBase}{profile.slug}</ReviewRow>
-                                <ReviewRow label='Category'>{category?.label}</ReviewRow>
+                                <ReviewRow label='Categories'>{catSummary.chosen.map(c => c.name).join(', ')}</ReviewRow>
                                 <ReviewRow label='KYC'>
                                     {kycMode === 'UPLOAD' ? `${requiredDocs.length} documents uploaded · queued for review` : `Verified offline · ${offlineReference}`}
                                 </ReviewRow>
                                 <ReviewRow label='Commission rate'>
-                                    {category?.commissionRate}% <span className='font-normal text-muted-foreground'>(category default, adjustable later)</span>
+                                    {catSummary.commissionRate}% <span className='font-normal text-muted-foreground'>({catSummary.chosen.length > 1 ? 'highest category default' : 'category default'}, adjustable later)</span>
                                 </ReviewRow>
                                 <ReviewRow label='Brand color'>
                                     <span className='inline-block size-5 rounded-md align-middle' style={{ background: profile.brandColor }} />

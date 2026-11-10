@@ -1,6 +1,8 @@
 import { Transform, Type } from 'class-transformer';
 import { OmitType, PartialType } from '@nestjs/mapped-types';
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
   ArrayUnique,
   IsArray,
   IsEmail,
@@ -24,9 +26,7 @@ import {
   GST_REGEX,
   PAN_REGEX,
   PHONE_REGEX,
-  SELLER_CATEGORY_KEYS,
   SLUG_REGEX,
-  type SellerCategoryKey,
 } from '../sellers.constants.js';
 
 const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
@@ -74,8 +74,13 @@ export class SellerProfileDto {
   @Matches(SLUG_REGEX, { message: 'Page URL can only contain lowercase letters, numbers and hyphens' })
   slug: string;
 
-  @IsIn(SELLER_CATEGORY_KEYS)
-  category: SellerCategoryKey;
+  /** Top-level categories (from Global catalog) this seller sells in */
+  @IsArray()
+  @ArrayMinSize(1, { message: 'Choose at least one category' })
+  @ArrayMaxSize(10)
+  @ArrayUnique()
+  @IsString({ each: true })
+  categoryIds: string[];
 
   @IsIn(BRAND_COLORS as unknown as string[], { message: 'Pick one of the brand colors' })
   brandColor: string;

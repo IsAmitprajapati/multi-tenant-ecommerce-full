@@ -120,13 +120,14 @@ async function seedRoles() {
 }
 
 /***Platform product taxonomy — top level matches the seller categories */
-const CATEGORY_TREE: { key: string; name: string; requiresFssai?: boolean; children: string[] }[] = [
-    { key: 'grocery', name: 'Grocery & food', requiresFssai: true, children: ['Fruits', 'Vegetables', 'Dairy & eggs', 'Bakery', 'Staples', 'Beverages', 'Snacks', 'Meat & seafood'] },
-    { key: 'fashion', name: 'Fashion & apparel', children: ["Men's clothing", "Women's clothing", 'Kids', 'Footwear', 'Accessories'] },
-    { key: 'electronics', name: 'Electronics', children: ['Mobiles & tablets', 'Laptops & computers', 'Audio', 'TVs & appliances', 'Accessories'] },
-    { key: 'home', name: 'Home & kitchen', children: ['Cookware', 'Home decor', 'Furniture', 'Storage'] },
-    { key: 'beauty', name: 'Beauty & personal care', children: ['Skincare', 'Haircare', 'Makeup', 'Fragrances'] },
-    { key: 'other', name: 'Other', children: ['General'] },
+/***Starter categories — managed afterwards from Platform admin › Global catalog (seed never overwrites edits) */
+const CATEGORY_TREE: { key: string; name: string; commission: number; requiresFssai?: boolean; children: string[] }[] = [
+    { key: 'grocery', name: 'Grocery & food', commission: 8, requiresFssai: true, children: ['Fruits', 'Vegetables', 'Dairy & eggs', 'Bakery', 'Staples', 'Beverages', 'Snacks', 'Meat & seafood'] },
+    { key: 'fashion', name: 'Fashion & apparel', commission: 12, children: ["Men's clothing", "Women's clothing", 'Kids', 'Footwear', 'Accessories'] },
+    { key: 'electronics', name: 'Electronics', commission: 6, children: ['Mobiles & tablets', 'Laptops & computers', 'Audio', 'TVs & appliances', 'Accessories'] },
+    { key: 'home', name: 'Home & kitchen', commission: 10, children: ['Cookware', 'Home decor', 'Furniture', 'Storage'] },
+    { key: 'beauty', name: 'Beauty & personal care', commission: 10, children: ['Skincare', 'Haircare', 'Makeup', 'Fragrances'] },
+    { key: 'other', name: 'Other', commission: 10, children: ['General'] },
 ]
 
 /***GST tax classes (verify rates with your CA before going live) */
@@ -154,7 +155,7 @@ async function seedCatalog() {
         const parent = await prisma.productCategory.upsert({
             where: { slug: top.key },
             update: {},
-            create: { name: top.name, slug: top.key, sellerCategory: top.key, requiresFssai: top.requiresFssai ?? false, sortOrder: i },
+            create: { name: top.name, slug: top.key, defaultCommissionRate: top.commission, requiresFssai: top.requiresFssai ?? false, sortOrder: i },
         })
         for (const [j, child] of top.children.entries()) {
             const slug = `${top.key}-${slugify(child)}`

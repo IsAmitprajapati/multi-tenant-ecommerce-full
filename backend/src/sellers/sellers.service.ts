@@ -15,11 +15,10 @@ import {
   BRAND_COLORS,
   BUSINESS_TYPES,
   KYC_DOCUMENTS,
+  FALLBACK_COMMISSION_RATE,
   requiredKycDocuments,
   SELLER_ADMIN_ROLE_NAME,
-  SELLER_CATEGORIES,
   SLUG_REGEX,
-  type SellerCategoryKey,
 } from './sellers.constants.js';
 
 const INVITE_TTL = '7d';
@@ -32,7 +31,7 @@ const listSelect = {
   id: true,
   name: true,
   slug: true,
-  category: true,
+  categories: { select: { category: { select: { id: true, name: true } } }, orderBy: { createdAt: 'asc' } },
   logoUrl: true,
   brandColor: true,
   status: true,
@@ -99,22 +98,52 @@ export class SellersService {
   }
 
   private serialize<T extends SellerRow>(seller: T) {
-    const { _count, commissionRate, ...rest } = seller;
+    const { _count, commissionRate, categories, ...rest } = seller;
+    const cats = categories.map((c) => c.category);
     return {
       ...rest,
+      categories: cats,
+      categoryLabel: cats.map((c) => c.name).join(', '),
       /** Full public page URL, built from CUSTOMER_STORE */
       publicUrl: `${this.sellerPageBase}${seller.slug}`,
       commissionRate: Number(commissionRate),
       kycDocumentsCount: _count.kycDocuments,
       usersCount: _count.users,
-      categoryLabel: SELLER_CATEGORIES.find((c) => c.key === seller.category)?.label ?? seller.category,
     };
   }
 
-  meta() {
+  /** Active top-level categories from Global catalog (what sellers can pick at onboarding) */
+  private async sellerCategoryOptions() {
+    const rows = await this.prisma.productCategory.findMany({
+      where: { parentId: null, isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: { id: true, name: true, description: true, defaultCommissionRate: true, requiresFssai: true },
+    });
+    return rows.map(({ defaultCommissionRate, ...c }) => ({ ...c, commissionRate: Number(defaultCommissionRate ?? FALLBACK_COMMISSION_RATE) }));
+  }
+
+  /**
+   * Validates the chosen categories (active, top-level) and derives:
+   *  - commissionRate: the highest default among them (admin can adjust later)
+   *  - requiresFssai: true if any of them needs an FSSAI license
+   */
+  async resolveCategories(ids: string[]) {
+    const rows = await this.prisma.productCategory.findMany({
+      where: { id: { in: ids }, parentId: null, isActive: true },
+      select: { id: true, defaultCommissionRate: true, requiresFssai: true },
+    });
+    if (rows.length !== new Set(ids).size) throw new BadRequestException('One or more selected categories are not available');
+    return {
+      ids: rows.map((r) => r.id),
+      commissionRate: Math.max(...rows.map((r) => Number(r.defaultCommissionRate ?? FALLBACK_COMMISSION_RATE))),
+      requiresFssai: rows.some((r) => r.requiresFssai),
+    };
+  }
+
+  async meta() {
     return {
       data: {
-        categories: SELLER_CATEGORIES,
+        categories: await this.sellerCategoryOptions(),
         businessTypes: BUSINESS_TYPES,
         brandColors: BRAND_COLORS,
         kycDocuments: KYC_DOCUMENTS,
@@ -182,7 +211,7 @@ export class SellersService {
 
   /** Checks logo + KYC files with ImageKit and that every required document is present. */
   private async verifyFiles(
-    profile: { category: SellerCategoryKey; logoFileId?: string },
+    profile: { requiresFssai: boolean; logoFileId?: string },
     kyc: { mode: 'UPLOAD' | 'OFFLINE'; documents?: { documentType: KycDocumentType; fileId: string }[] },
   ) {
     // Nothing is uploaded through this server — files went straight to ImageKit
@@ -191,7 +220,7 @@ export class SellersService {
     let documents: { documentType: KycDocumentType; fileId: string; filePath: string; fileName: string; mimeType: string }[] = [];
     if (kyc.mode === 'UPLOAD') {
       const provided = new Map((kyc.documents ?? []).map((d) => [d.documentType, d.fileId]));
-      const missing = requiredKycDocuments(profile.category).filter((t) => !provided.has(t));
+      const missing = requiredKycDocuments(profile.requiresFssai).filter((t) => !provided.has(t));
       if (missing.length) {
         const labels = missing.map((t) => KYC_DOCUMENTS.find((d) => d.type === t)?.label ?? t);
         throw new BadRequestException(`Missing KYC documents: ${labels.join(', ')}`);
@@ -244,8 +273,8 @@ export class SellersService {
       if (!check.data.available) throw this.conflict('slug', check.data.reason ?? 'This page URL is not available');
     }
 
-    const { logo, documents } = await this.verifyFiles(profile, kyc);
-    const category = SELLER_CATEGORIES.find((c) => c.key === profile.category)!;
+    const cats = await this.resolveCategories(profile.categoryIds);
+    const { logo, documents } = await this.verifyFiles({ ...profile, requiresFssai: cats.requiresFssai }, kyc);
     const businessDetails = {
       legalBusinessName: business.legalBusinessName,
       businessType: business.businessType,
@@ -259,7 +288,6 @@ export class SellersService {
     const sellerData = {
       name: profile.name,
       slug: profile.slug,
-      category: profile.category,
       brandColor: profile.brandColor,
       // Re-submitting without a new logo keeps the current one
       ...(logo ? { logoUrl: logo.url, logoFileId: logo.fileId } : existing ? {} : { logoUrl: null, logoFileId: null }),
@@ -267,17 +295,20 @@ export class SellersService {
       status: 'PENDING' as const,
       kycStatus: 'UNDER_REVIEW' as const,
       kycOfflineReference: null,
-      commissionRate: category.commissionRate,
+      commissionRate: cats.commissionRate,
     };
+    const categoryLinks = { create: cats.ids.map((categoryId) => ({ categoryId })) };
 
     const sellerId = await this.prisma.$transaction(async (tx) => {
       if (existing) {
-        // Re-submission after rejection: replace details and documents
+        // Re-submission after rejection: replace details, categories and documents
         await tx.sellerKycDocument.deleteMany({ where: { sellerId: existing.id } });
+        await tx.sellerCategory.deleteMany({ where: { sellerId: existing.id } });
         await tx.seller.update({
           where: { id: existing.id },
           data: {
             ...sellerData,
+            categories: categoryLinks,
             businessDetails: { upsert: { create: businessDetails, update: businessDetails } },
             kycDocuments: { create: documents },
           },
@@ -287,6 +318,7 @@ export class SellersService {
       const seller = await tx.seller.create({
         data: {
           ...sellerData,
+          categories: categoryLinks,
           createdVia: 'SELF_SERVICE',
           ownerId: user.id,
           businessDetails: { create: businessDetails },
@@ -328,8 +360,8 @@ export class SellersService {
     });
     if (!role) throw new InternalServerErrorException(`The "${SELLER_ADMIN_ROLE_NAME}" role is missing or inactive — run the seed`);
 
-    const { logo, documents } = await this.verifyFiles(profile, kyc);
-    const category = SELLER_CATEGORIES.find((c) => c.key === profile.category)!;
+    const cats = await this.resolveCategories(profile.categoryIds);
+    const { logo, documents } = await this.verifyFiles({ ...profile, requiresFssai: cats.requiresFssai }, kyc);
 
     // ---- create everything atomically
     // The unique index on sellers.slug is the final guarantee: if another admin
@@ -352,15 +384,15 @@ export class SellersService {
         data: {
           name: profile.name,
           slug: profile.slug,
-          category: profile.category,
           brandColor: profile.brandColor,
+          categories: { create: cats.ids.map((categoryId) => ({ categoryId })) },
           logoUrl: logo?.url ?? null,
           logoFileId: logo?.fileId ?? null,
           // Admin-onboarded sellers go live immediately (self-serve signups wait for review)
           status: 'ACTIVE',
           kycStatus: kyc.mode === 'OFFLINE' ? 'VERIFIED' : 'UNDER_REVIEW',
           kycOfflineReference: kyc.mode === 'OFFLINE' ? kyc.offlineReference : null,
-          commissionRate: category.commissionRate,
+          commissionRate: cats.commissionRate,
           createdVia: 'ADMIN_INITIATED',
           ownerId: owner.id,
           createdById: actorId,
@@ -440,14 +472,19 @@ export class SellersService {
     }
 
     const logo = profile?.logoFileId ? await this.storage.verify(profile.logoFileId, 'logo') : null;
+    const cats = profile?.categoryIds ? await this.resolveCategories(profile.categoryIds) : null;
 
     await this.prisma.$transaction(async (tx) => {
+      if (cats) {
+        // Replace the seller's categories (commission stays as set; it's edited separately)
+        await tx.sellerCategory.deleteMany({ where: { sellerId: id } });
+        await tx.sellerCategory.createMany({ data: cats.ids.map((categoryId) => ({ sellerId: id, categoryId })) });
+      }
       await tx.seller.update({
         where: { id },
         data: {
           ...(profile?.name && { name: profile.name }),
           ...(profile?.slug && { slug: profile.slug }),
-          ...(profile?.category && { category: profile.category }),
           ...(profile?.brandColor && { brandColor: profile.brandColor }),
           ...(logo && { logoUrl: logo.url, logoFileId: logo.fileId }),
           ...(!logo && profile?.removeLogo && { logoUrl: null, logoFileId: null }),

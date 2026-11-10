@@ -7,9 +7,12 @@ export type KycDocumentType = 'AADHAAR' | 'PAN' | 'BUSINESS_REGISTRATION_CERTIFI
 export type UploadKind = 'logo' | 'kyc'
 export type SellerStatusAction = 'APPROVE' | 'REJECT' | 'SUSPEND' | 'REACTIVATE'
 
+/** A top-level category from Global catalog (managed by the platform admin) */
 export interface SellerCategory {
-    key: string
-    label: string
+    id: string
+    name: string
+    description: string | null
+    /** Default commission % for sellers in this category */
     commissionRate: number
     requiresFssai: boolean
 }
@@ -29,7 +32,8 @@ export interface ISeller {
     slug: string
     /** Full public page URL, built from CUSTOMER_STORE on the backend */
     publicUrl: string
-    category: string
+    categories: { id: string; name: string }[]
+    /** Category names joined with ", " */
     categoryLabel: string
     logoUrl: string | null
     brandColor: string
@@ -108,7 +112,8 @@ export interface OnboardSellerPayload {
     profile: {
         name: string
         slug: string
-        category: string
+        /** One or more top-level categories */
+        categoryIds: string[]
         brandColor: string
         logoFileId?: string
     }
