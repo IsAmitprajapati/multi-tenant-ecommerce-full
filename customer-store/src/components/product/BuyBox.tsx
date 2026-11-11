@@ -2,8 +2,12 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { AlertCircle, CheckCircle2, Info, MapPin, Minus, Plus } from 'lucide-react'
 import { inr } from '@/lib/format'
+import { useCart } from '@/lib/cart/CartProvider'
+import { errorMessage } from '@/lib/auth/client'
+import { Spinner } from '@/components/auth/fields'
 import { RatingChip } from '@/components/reviews/Stars'
 import { RATING_EVENT } from '@/components/reviews/ReviewsSection'
 import { saveDeliveryLocation, useDeliveryLocation } from '@/components/layout/LocationPicker'
@@ -35,6 +39,23 @@ export default function BuyBox({ product }: { product: ProductDetail }) {
   }, [product.id])
   const rating = liveRating ?? product.rating
   const off = offPct(opt.price, opt.mrp)
+
+  // Add to cart / Buy now (Buy now goes straight to the cart; checkout follows from there)
+  const { add } = useCart()
+  const router = useRouter()
+  const [busy, setBusy] = useState<'add' | 'buy' | null>(null)
+  const [added, setAdded] = useState<{ ok: boolean; text: string } | null>(null)
+  const addToCart = async (buyNow: boolean) => {
+    setBusy(buyNow ? 'buy' : 'add')
+    setAdded(null)
+    try {
+      const message = await add(product.id, opt.id, qty)
+      if (buyNow) { router.push('/cart'); return }
+      setAdded({ ok: true, text: message })
+    } catch (err) {
+      setAdded({ ok: false, text: errorMessage(err) })
+    } finally { setBusy(null) }
+  }
 
   const pick = (i: number) => {
     setSelected(i)
@@ -94,10 +115,20 @@ export default function BuyBox({ product }: { product: ProductDetail }) {
         {opt.inStock && opt.lowStock && <p className='mt-2 text-right text-xs font-semibold text-[#B76E00]'>Only {opt.maxQty} left</p>}
 
         <div className='mt-5 flex gap-2.5'>
-          <button type='button' disabled className='btn flex-1 border-[1.5px] border-brand-600 bg-white py-3 text-[13px] text-brand-700'>Add to cart</button>
-          <button type='button' disabled className='btn-primary flex-1 py-3 text-[13px]'>Buy now</button>
+          <button type='button' onClick={() => addToCart(false)} disabled={!opt.inStock || busy !== null}
+            className='btn flex-1 border-[1.5px] border-brand-600 bg-white py-3 text-[13px] text-brand-700 hover:bg-brand-100'>
+            {busy === 'add' && <Spinner />} Add to cart
+          </button>
+          <button type='button' onClick={() => addToCart(true)} disabled={!opt.inStock || busy !== null} className='btn-primary flex-1 py-3 text-[13px]'>
+            {busy === 'buy' && <Spinner />} Buy now
+          </button>
         </div>
-        <p className='mt-2.5 flex items-center justify-center gap-1.5 text-[11px] text-n-600'><Info className='size-3.5' /> Cart and checkout are coming soon.</p>
+        {added && (
+          <p role='status' className={`mt-3 flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-semibold ${added.ok ? 'bg-brand-100 text-[#155C3B]' : 'bg-error/10 text-[#B23139]'}`}>
+            <span className='flex items-center gap-1.5'>{added.ok ? <CheckCircle2 className='size-4' /> : <AlertCircle className='size-4' />} {added.text}</span>
+            {added.ok && <Link href='/cart' className='shrink-0 underline-offset-2 hover:underline'>View cart</Link>}
+          </p>
+        )}
       </div>
 
       <DeliveryCheck product={product} />

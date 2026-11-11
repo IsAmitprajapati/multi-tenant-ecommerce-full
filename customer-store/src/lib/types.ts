@@ -159,3 +159,40 @@ export interface SellerStore {
   categories: { slug: string; name: string; parent: string | null; count: number }[]
   products: (ProductCard & { categorySlug: string; createdAt: string })[]
 }
+
+export interface CartLine {
+  /** Cart item id (signed in) or "<productId>:<variantId>" (guest) */
+  id: string
+  productId: string
+  variantId: string | null
+  title: string
+  slug: string | null
+  variantName: string | null
+  imageUrl: string | null
+  seller: { name: string; slug: string; brandColor: string } | null
+  unitPrice: number
+  mrp: number | null
+  quantity: number
+  quantityReduced: boolean
+  maxQty: number
+  lineTotal: number
+  status: 'OK' | 'UNAVAILABLE' | 'OUT_OF_STOCK'
+  savedForLater: boolean
+}
+
+export interface Cart {
+  groups: { seller: { name: string; slug: string; brandColor: string }; items: CartLine[]; subtotal: number }[]
+  unavailable: CartLine[]
+  saved: CartLine[]
+  summary: {
+    itemCount: number
+    subtotal: number
+    savings: number
+    deliveryFee: number
+    freeDeliveryThreshold: number
+    amountToFreeDelivery: number
+    taxesIncluded: boolean
+    total: number
+    hasProblems: boolean
+  }
+}

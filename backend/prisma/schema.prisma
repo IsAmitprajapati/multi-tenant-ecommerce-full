@@ -58,6 +58,7 @@ model User {
   reviewedKycDocuments SellerKycDocument[]
   inventoryAdjustments InventoryAdjustment[]
   productReviews       ProductReview[]
+  cartItems            CartItem[]
 
   @@index([roleId])
   @@index([sellerId])
@@ -426,6 +427,7 @@ model Product {
   adjustments  InventoryAdjustment[]
   homeSections HomeSectionProduct[]
   reviews      ProductReview[]
+  cartItems    CartItem[]
 
   @@unique([sellerId, slug])
   @@index([sellerId, status])
@@ -449,6 +451,7 @@ model ProductVariant {
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   adjustments InventoryAdjustment[]
+  cartItems   CartItem[]
 
   @@index([productId])
   @@map("product_variants")
@@ -628,4 +631,29 @@ model ProductReview {
   @@unique([productId, userId])
   @@index([productId, status, createdAt])
   @@map("product_reviews")
+}
+
+// ───────────────────────── Cart ─────────────────────────
+
+/**
+ * A signed-in shopper's cart line (guests keep theirs in the browser until they log in)
+ */
+model CartItem {
+  id            String          @id @default(cuid())
+  userId        String          @map("user_id")
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId     String          @map("product_id")
+  product       Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variantId     String?         @map("variant_id")
+  variant       ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  /// variantId or "" — lets the unique key cover products without variants (NULLs never clash in Postgres)
+  variantKey    String          @default("") @map("variant_key")
+  quantity      Int
+  savedForLater Boolean         @default(false) @map("saved_for_later")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  @@unique([userId, productId, variantKey])
+  @@index([userId])
+  @@map("cart_items")
 }

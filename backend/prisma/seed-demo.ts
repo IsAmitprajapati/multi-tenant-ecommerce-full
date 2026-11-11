@@ -117,6 +117,25 @@ const REVIEW_TEXT: Record<number, { title: string; body: string }[]> = {
   2: [{ title: 'Not great', body: 'Quality was below what I expected from the description. The seller was helpful when I asked about it though.' }],
 }
 
+/**
+ * A demo shopper you can log in with on the storefront (credentials from .env:
+ * DEMO_CUSTOMER_EMAIL / DEMO_CUSTOMER_PASSWORD). The password is reset to the .env value on each run.
+ */
+async function seedDemoShopper() {
+  const email = process.env.DEMO_CUSTOMER_EMAIL?.trim().toLowerCase()
+  const password = process.env.DEMO_CUSTOMER_PASSWORD
+  if (!email || !password) { console.log('  - demo shopper skipped (set DEMO_CUSTOMER_EMAIL and DEMO_CUSTOMER_PASSWORD in .env)'); return }
+  const passwordHash = await bcrypt.hash(password, 10)
+  const existing = await prisma.user.findUnique({ where: { email }, select: { id: true, userType: true } })
+  if (existing && existing.userType !== 'CUSTOMER') { console.log(`  ! ${email} belongs to a non-shopper account — demo shopper skipped`); return }
+  await prisma.user.upsert({
+    where: { email },
+    create: { email, fullName: 'Demo Shopper', phone: '+919876543210', passwordHash, userType: 'CUSTOMER' },
+    update: { passwordHash, status: 'ACTIVE' },
+  })
+  console.log(`  ${existing ? '=' : '+'} demo shopper ${email} (password from .env)`)
+}
+
 async function seedDemoReviews() {
   const reviewers = []
   for (const [i, fullName] of DEMO_REVIEWERS.entries()) {
@@ -258,6 +277,7 @@ async function add(data: DemoData) {
   if (subImages) console.log(`  + ${subImages} sub-category images`)
 
   await seedDemoReviews()
+  await seedDemoShopper()
 
   // Banners
   for (const b of data.banners) {
@@ -329,6 +349,8 @@ async function remove() {
   await prisma.user.updateMany({ where: { sellerId: { in: sellerIds } }, data: { sellerId: null } })
   await prisma.seller.deleteMany({ where: { id: { in: sellerIds } } })
   await prisma.user.deleteMany({ where: { id: { in: sellers.map((s) => s.ownerId) }, email: { endsWith: '.example.com' } } })
+  const shopperEmail = process.env.DEMO_CUSTOMER_EMAIL?.trim().toLowerCase()
+  if (shopperEmail) await prisma.user.deleteMany({ where: { email: shopperEmail, userType: 'CUSTOMER' } })
   // Demo reviewers (their reviews go with them)
   const reviewers = await prisma.user.deleteMany({ where: { email: { endsWith: `@${REVIEWER_DOMAIN}` }, userType: 'CUSTOMER' } })
   if (reviewers.count) console.log(`  - removed ${reviewers.count} demo reviewers and their reviews`)

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { AuthProvider } from '@/lib/auth/AuthProvider'
+import { CartProvider } from '@/lib/cart/CartProvider'
 import { SITE_NAME } from '@/lib/config'
 import './globals.css'
 
@@ -17,7 +18,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang='en' className={`${inter.variable} h-full`}>
       <body className='flex min-h-full flex-col font-sans'>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider><CartProvider>{children}</CartProvider></AuthProvider>
       </body>
     </html>
   )

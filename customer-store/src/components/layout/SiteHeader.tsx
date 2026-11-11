@@ -3,6 +3,7 @@ import LocationPicker from './LocationPicker'
 import { Suspense } from 'react'
 import SearchBox, { SearchBoxFallback } from './SearchBox'
 import UserMenu from './UserMenu'
+import CartButton from './CartButton'
 
 export default function SiteHeader() {
   return (
@@ -14,6 +15,7 @@ export default function SiteHeader() {
           <SearchBox className='hidden max-w-[520px] flex-1 md:block' />
         </Suspense>
         <div className='flex-1' />
+        <CartButton />
         <UserMenu />
       </div>
       <div className='grid gap-2 px-4 pb-3 md:hidden'>

@@ -14,6 +14,7 @@ import { ProductsModule } from './products/products.module.js';
 import { CatalogModule } from './catalog/catalog.module.js';
 import { StorefrontModule } from './storefront/storefront.module.js';
 import { ReviewsModule } from './reviews/reviews.module.js';
+import { CartModule } from './cart/cart.module.js';
 
 @Module({
 
@@ -33,6 +34,7 @@ import { ReviewsModule } from './reviews/reviews.module.js';
     CatalogModule,
     StorefrontModule,
     ReviewsModule,
+    CartModule,
   ],
   controllers: [AppController],
   providers: [AppService],
