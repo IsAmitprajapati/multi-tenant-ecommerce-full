@@ -120,6 +120,7 @@ export class PublicStorefrontController {
         sellers: query.seller,
         brands: query.brand,
         minDiscount: query.discount,
+        minRating: query.rating,
         inStock: query.inStock,
       },
     });

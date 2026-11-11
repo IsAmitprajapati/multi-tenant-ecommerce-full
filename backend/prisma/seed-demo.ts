@@ -101,6 +101,60 @@ async function ensureBrands(sellerSlug: string) {
   return products.length
 }
 
+/** Demo shoppers who leave the demo reviews (unusable passwords, removed with --remove) */
+const DEMO_REVIEWERS = ['Priya Sharma', 'Rahul Verma', 'Ananya Iyer', 'Vikram Singh', 'Neha Gupta', 'Arjun Nair', 'Kavya Reddy', 'Rohan Mehta', 'Sneha Kulkarni', 'Aditya Rao']
+const REVIEWER_DOMAIN = 'demo-reviews.example.com'
+const REVIEW_TEXT: Record<number, { title: string; body: string }[]> = {
+  5: [
+    { title: 'Excellent', body: 'Exactly as described and very good quality. Delivery was quick and the packaging was neat. Will order again.' },
+    { title: 'Worth every rupee', body: 'Really happy with this. Fresh, well packed and arrived on time.' },
+  ],
+  4: [
+    { title: 'Good buy', body: 'Good product for the price. Packaging could be a little better, but overall I am satisfied.' },
+    { title: 'Pretty good', body: 'Matches the photos. Took a day longer than expected to arrive, otherwise no complaints.' },
+  ],
+  3: [{ title: 'Okay', body: 'Decent, nothing special. It does the job but I expected slightly better quality.' }],
+  2: [{ title: 'Not great', body: 'Quality was below what I expected from the description. The seller was helpful when I asked about it though.' }],
+}
+
+async function seedDemoReviews() {
+  const reviewers = []
+  for (const [i, fullName] of DEMO_REVIEWERS.entries()) {
+    const email = `reviewer-${i + 1}@${REVIEWER_DOMAIN}`
+    reviewers.push(await prisma.user.upsert({
+      where: { email },
+      create: { email, fullName, passwordHash: await bcrypt.hash(randomBytes(24).toString('hex'), 10), userType: 'CUSTOMER' },
+      update: {},
+      select: { id: true },
+    }))
+  }
+  const products = await prisma.product.findMany({ where: { seller: { slug: { startsWith: 'demo-' } } }, orderBy: { sku: 'asc' }, select: { id: true } })
+  let added = 0
+  for (const [pi, p] of products.entries()) {
+    const howMany = 2 + (pi % 7) // 2–8 reviews per product
+    for (let k = 0; k < howMany; k++) {
+      const reviewer = reviewers[(pi + k) % reviewers.length]!
+      // Mostly 4–5 stars, the odd 3 or 2 (deterministic so re-runs match)
+      const rating = [5, 4, 5, 4, 3, 5, 4, 2, 5, 4][(pi * 3 + k) % 10]!
+      const text = REVIEW_TEXT[rating]![(pi + k) % REVIEW_TEXT[rating]!.length]!
+      const exists = await prisma.productReview.findUnique({ where: { productId_userId: { productId: p.id, userId: reviewer.id } }, select: { id: true } })
+      if (exists) continue
+      await prisma.productReview.create({
+        data: (() => {
+          const at = new Date(Date.now() - (pi * 5 + k * 11 + 1) * 86_400_000)
+          return { productId: p.id, userId: reviewer.id, rating, title: text.title, body: text.body, createdAt: at, updatedAt: at }
+        })(),
+      })
+      added++
+    }
+    const agg = await prisma.productReview.aggregate({ where: { productId: p.id, status: 'PUBLISHED' }, _avg: { rating: true }, _count: { _all: true } })
+    await prisma.product.update({ where: { id: p.id }, data: { ratingAvg: Math.round((agg._avg.rating ?? 0) * 100) / 100, ratingCount: agg._count._all } })
+  }
+  if (added) console.log(`  + ${added} demo reviews`)
+  // Demo reviews were never edited: keep updated_at = created_at (rows seeded before this fix showed "edited")
+  await prisma.$executeRaw`UPDATE product_reviews SET updated_at = created_at WHERE user_id IN (SELECT id FROM users WHERE email LIKE ${'%@' + REVIEWER_DOMAIN})`
+}
+
 /** Small deterministic "random" so re-runs look the same */
 const stockFor = (i: number) => (i % 13 === 7 ? 0 : 15 + ((i * 37) % 90))
 
@@ -203,6 +257,8 @@ async function add(data: DemoData) {
   }
   if (subImages) console.log(`  + ${subImages} sub-category images`)
 
+  await seedDemoReviews()
+
   // Banners
   for (const b of data.banners) {
     if (await prisma.homeBanner.findFirst({ where: { title: b.title, imageUrl: { contains: '/demo-banner-' } } })) { console.log(`  = banner "${b.title}" exists`); continue }
@@ -273,6 +329,9 @@ async function remove() {
   await prisma.user.updateMany({ where: { sellerId: { in: sellerIds } }, data: { sellerId: null } })
   await prisma.seller.deleteMany({ where: { id: { in: sellerIds } } })
   await prisma.user.deleteMany({ where: { id: { in: sellers.map((s) => s.ownerId) }, email: { endsWith: '.example.com' } } })
+  // Demo reviewers (their reviews go with them)
+  const reviewers = await prisma.user.deleteMany({ where: { email: { endsWith: `@${REVIEWER_DOMAIN}` }, userType: 'CUSTOMER' } })
+  if (reviewers.count) console.log(`  - removed ${reviewers.count} demo reviewers and their reviews`)
   console.log(`  - removed ${sellers.length} demo sellers, ${images.length} products, ${banners.length} banners`)
 }
 

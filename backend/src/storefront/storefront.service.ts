@@ -23,6 +23,7 @@ export interface ListingFilters {
   sellers?: string[];
   brands?: string[];
   minDiscount?: number;
+  minRating?: number;
   inStock?: boolean;
 }
 
@@ -51,6 +52,9 @@ export interface ProductCard {
   imageUrl: string | null;
   seller: { name: string; slug: string };
   brand: string | null;
+  /** Average stars (null until the first review) */
+  rating: number | null;
+  ratingCount: number;
   price: number;
   /** Compare-at price (MRP) when higher than price */
   mrp: number | null;
@@ -73,6 +77,8 @@ export function toCard(p: CardRow): ProductCard {
     imageUrl: p.images[0]?.url ?? null,
     seller: p.seller,
     brand: p.brand?.name ?? null,
+    rating: p.ratingCount > 0 ? Number(p.ratingAvg) : null,
+    ratingCount: p.ratingCount,
     price: cheapest.price,
     mrp,
     discountPercent: mrp ? Math.round(((mrp - cheapest.price) / mrp) * 100) : 0,
@@ -524,6 +530,7 @@ export class StorefrontService {
       category: { name: p.category.name, slug: p.category.slug },
       parentCategory: p.category.parent ? { name: p.category.parent.name, slug: p.category.parent.slug } : null,
       images: p.images,
+      rating: { average: Number(p.ratingAvg), count: p.ratingCount },
       price: Number(p.sellingPrice),
       mrp: money(p.compareAtPrice),
       inStock: p.inventoryQty > 0,
@@ -618,8 +625,8 @@ export class StorefrontService {
       price: { min: 0, max: niceCeil(topMax) },
       sellers: [...sellerCounts].map(([slug, n]) => ({ slug, name: sellerNames.get(slug)!, count: n })).sort((a, b) => a.name.localeCompare(b.name)),
       brands: [...brandCounts].map(([name, n]) => ({ name, count: n })).sort((a, b) => a.name.localeCompare(b.name)),
-      // No reviews exist yet; the storefront shows the rating filter as unavailable until they do
-      ratingsAvailable: false,
+      // The rating filter is offered once anything in this list has been rated
+      ratingsAvailable: all.some((c) => c.ratingCount > 0),
     };
 
     const sellers = new Set(f.sellers ?? []);
@@ -630,6 +637,7 @@ export class StorefrontService {
       (!sellers.size || sellers.has(c.seller.slug)) &&
       (!brands.size || (c.brand != null && brands.has(c.brand.toLowerCase()))) &&
       (!f.minDiscount || c.discountPercent >= f.minDiscount) &&
+      (!f.minRating || (c.rating ?? 0) >= f.minRating) &&
       (!f.inStock || c.inStock));
     if (sort === 'DEALS') products = [...products].sort((a, b) => b.discountPercent - a.discountPercent);
 

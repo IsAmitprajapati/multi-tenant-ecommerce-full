@@ -155,6 +155,10 @@ export class ProductListQueryDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(95)
   discount?: number;
 
+  /** Minimum average stars (1–4 "& up") */
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(5)
+  rating?: number;
+
   @IsOptional() @Transform(({ value }) => value === true || value === 'true' || value === '1')
   @IsBoolean()
   inStock?: boolean;

@@ -148,6 +148,7 @@ export default function CategoryListing({ top, initialKey, initialListing }: {
   for (const s of f.sellers) chips.push({ label: facets?.sellers.find((x) => x.slug === s)?.name ?? s, next: { ...f, sellers: f.sellers.filter((x) => x !== s) } })
   for (const b of f.brands) chips.push({ label: b, next: { ...f, brands: f.brands.filter((x) => x !== b) } })
   if (f.discount) chips.push({ label: `${f.discount}% or more off`, next: { ...f, discount: undefined } })
+  if (f.rating) chips.push({ label: `${f.rating}★ & up`, next: { ...f, rating: undefined } })
   if (f.inStock) chips.push({ label: 'In stock', next: { ...f, inStock: false } })
 
   const filterHeader = (

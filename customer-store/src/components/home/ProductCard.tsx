@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ImageOff } from 'lucide-react'
 import { inr, productHref } from '@/lib/format'
+import { RatingChip } from '@/components/reviews/Stars'
 import type { ProductCard as Card } from '@/lib/types'
 
 /** Product tile — links to the product page */
@@ -22,6 +23,12 @@ export default function ProductCard({ p, className = '' }: { p: Card; className?
       <div className='flex flex-1 flex-col p-3'>
         <div className='truncate text-[10.5px] font-semibold text-brand-600'>{p.seller.name}</div>
         <h3 className='mt-0.5 line-clamp-2 text-[13px] leading-snug font-semibold group-hover:text-brand-700'>{p.title}</h3>
+        {p.rating != null && (
+          <div className='mt-1 flex items-center gap-1.5'>
+            <RatingChip value={p.rating} />
+            <span className='text-[11px] text-n-600'>({p.ratingCount})</span>
+          </div>
+        )}
         <div className='mt-auto flex items-baseline gap-1.5 pt-1.5'>
           {p.hasVariants && <span className='text-[11px] text-n-600'>from</span>}
           <span className='text-sm font-bold'>{inr(p.price)}</span>

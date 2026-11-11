@@ -13,6 +13,7 @@ import { SellersModule } from './sellers/sellers.module.js';
 import { ProductsModule } from './products/products.module.js';
 import { CatalogModule } from './catalog/catalog.module.js';
 import { StorefrontModule } from './storefront/storefront.module.js';
+import { ReviewsModule } from './reviews/reviews.module.js';
 
 @Module({
 
@@ -31,6 +32,7 @@ import { StorefrontModule } from './storefront/storefront.module.js';
     ProductsModule,
     CatalogModule,
     StorefrontModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

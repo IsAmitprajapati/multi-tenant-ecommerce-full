@@ -1,6 +1,6 @@
 import { cacheLife, cacheTag } from 'next/cache'
 import { API_URL } from './config'
-import type { HomeData, ProductDetail, ProductListing, PublicCategory } from './types'
+import type { HomeData, ProductDetail, ProductListing, PublicCategory, ReviewPage } from './types'
 import { filtersQuery, type ListingFilters } from './listing'
 
 /**
@@ -61,4 +61,16 @@ export async function getProduct(sellerSlug: string, slug: string): Promise<Prod
   if (res.status === 404) return null
   if (!res.ok) throw new Error(`Product ${sellerSlug}/${slug} failed with ${res.status}`)
   return res.json() as Promise<ProductDetail>
+}
+
+/** First page of a product's reviews (5 on the product page, 10 on the all-reviews page) */
+export async function getReviews(sellerSlug: string, slug: string, opts: { pageSize?: number; rating?: number } = {}): Promise<ReviewPage | null> {
+  'use cache'
+  cacheLife('minutes')
+  cacheTag(`reviews:${sellerSlug}/${slug}`)
+  const qs = new URLSearchParams({ pageSize: String(opts.pageSize ?? 10) })
+  if (opts.rating) qs.set('rating', String(opts.rating))
+  const res = await fetch(`${API_URL}/public/products/${encodeURIComponent(sellerSlug)}/${encodeURIComponent(slug)}/reviews?${qs}`)
+  if (!res.ok) return null
+  return res.json() as Promise<ReviewPage>
 }

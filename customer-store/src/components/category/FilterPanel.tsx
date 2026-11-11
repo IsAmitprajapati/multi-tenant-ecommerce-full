@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Check, Star } from 'lucide-react'
 import { inr } from '@/lib/format'
-import { DISCOUNT_OPTIONS, type ListingFilters } from '@/lib/listing'
+import { DISCOUNT_OPTIONS, RATING_OPTIONS, type ListingFilters } from '@/lib/listing'
 import type { ListingFacets } from '@/lib/types'
 
 function Group({ title, children, last }: { title: React.ReactNode; children: React.ReactNode; last?: boolean }) {
@@ -123,15 +123,22 @@ export default function FilterPanel({ facets, filters, onChange }: {
       </Group>
 
       <Group title='Customer rating'>
-        <div aria-disabled className='opacity-50'>
-          {[4, 3, 2, 1].map((r) => (
-            <div key={r} className='flex items-center gap-2.5 py-1.5 text-[13px]'>
-              <span className='size-4 shrink-0 rounded-full border-[1.5px] border-n-200' />
-              <span className='inline-flex items-center gap-1'>{r}<Star className='size-3 fill-current' /> &amp; up</span>
-            </div>
-          ))}
+        <div role='radiogroup' aria-label='Customer rating' aria-disabled={!facets?.ratingsAvailable || undefined} className={facets?.ratingsAvailable ? '' : 'opacity-50'}>
+          {RATING_OPTIONS.map((r) => {
+            const on = filters.rating === r
+            return (
+              <button key={r} type='button' role='radio' aria-checked={on} disabled={!facets?.ratingsAvailable}
+                onClick={() => onChange({ ...filters, rating: on ? undefined : r })}
+                className='flex w-full cursor-pointer items-center gap-2.5 py-1.5 text-left text-[13px] disabled:cursor-default'>
+                <span className={`flex size-4 shrink-0 items-center justify-center rounded-full border-[1.5px] ${on ? 'border-brand-600' : 'border-n-200 bg-white'}`}>
+                  {on && <span className='size-2 rounded-full bg-brand-600' />}
+                </span>
+                <span className='inline-flex items-center gap-1'>{r}<Star className='size-3 fill-current text-warning' /> &amp; up</span>
+              </button>
+            )
+          })}
         </div>
-        {!facets?.ratingsAvailable && <p className='mt-1 text-[11px] text-n-600'>Available once customers start rating products.</p>}
+        {!facets?.ratingsAvailable && <p className='mt-1 text-[11px] text-n-600'>No products here have been rated yet.</p>}
       </Group>
 
       <Group title='Discount'>

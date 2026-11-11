@@ -1,9 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AlertCircle, CheckCircle2, Info, MapPin, Minus, Plus } from 'lucide-react'
 import { inr } from '@/lib/format'
+import { RatingChip } from '@/components/reviews/Stars'
+import { RATING_EVENT } from '@/components/reviews/ReviewsSection'
 import { saveDeliveryLocation, useDeliveryLocation } from '@/components/layout/LocationPicker'
 import type { ProductDetail } from '@/lib/types'
 
@@ -20,6 +22,18 @@ export default function BuyBox({ product }: { product: ProductDetail }) {
   const [selected, setSelected] = useState(() => Math.max(0, options.findIndex((o) => o.inStock)))
   const [qty, setQty] = useState(1)
   const opt = options[selected]!
+
+  // Updates straight away when the shopper posts/edits/deletes a review below
+  const [liveRating, setLiveRating] = useState<{ average: number; count: number } | null>(null)
+  useEffect(() => {
+    const on = (e: Event) => {
+      const d = (e as CustomEvent<{ productId: string; average: number; count: number }>).detail
+      if (d.productId === product.id) setLiveRating({ average: d.average, count: d.count })
+    }
+    window.addEventListener(RATING_EVENT, on)
+    return () => window.removeEventListener(RATING_EVENT, on)
+  }, [product.id])
+  const rating = liveRating ?? product.rating
   const off = offPct(opt.price, opt.mrp)
 
   const pick = (i: number) => {
@@ -35,6 +49,12 @@ export default function BuyBox({ product }: { product: ProductDetail }) {
         </Link>
         <h1 className='mt-1.5 text-[22px] leading-tight font-bold'>{product.title}</h1>
         {product.brand && <p className='mt-1 text-[13px] text-n-600'>Brand: <span className='font-medium text-n-900'>{product.brand}</span></p>}
+        {/* Rating chip (design) — jumps to the reviews */}
+        <a href='#reviews' className='mt-2.5 inline-flex items-center gap-2 text-xs text-n-600 hover:text-brand-700'>
+          {rating.count > 0
+            ? <><RatingChip value={rating.average} className='px-2 py-0.5 text-xs' /> {rating.count.toLocaleString('en-IN')} {rating.count === 1 ? 'rating' : 'ratings'}</>
+            : <span>No ratings yet · <span className='font-semibold text-brand-600'>Be the first to review</span></span>}
+        </a>
 
         <div className='mt-3.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1'>
           <span className='text-[26px] font-bold'>{inr(opt.price)}</span>

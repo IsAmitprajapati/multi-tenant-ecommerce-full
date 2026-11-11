@@ -57,6 +57,7 @@ model User {
   createdSellers       Seller[]              @relation("SellerCreatedBy")
   reviewedKycDocuments SellerKycDocument[]
   inventoryAdjustments InventoryAdjustment[]
+  productReviews       ProductReview[]
 
   @@index([roleId])
   @@index([sellerId])
@@ -413,6 +414,9 @@ model Product {
   /// Set by checkout when the first order containing this product is placed.
   /// Once set, the product can never be deleted — only deactivated.
   firstOrderedAt    DateTime?     @map("first_ordered_at")
+  /// Kept in step with published reviews (for cards, sorting and the rating filter)
+  ratingAvg         Decimal       @default(0) @map("rating_avg") @db.Decimal(3, 2)
+  ratingCount       Int           @default(0) @map("rating_count")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -421,6 +425,7 @@ model Product {
   images       ProductImage[]
   adjustments  InventoryAdjustment[]
   homeSections HomeSectionProduct[]
+  reviews      ProductReview[]
 
   @@unique([sellerId, slug])
   @@index([sellerId, status])
@@ -595,4 +600,32 @@ model HomeSectionProduct {
   @@id([sectionId, productId])
   @@index([productId])
   @@map("home_section_products")
+}
+
+// ───────────────────────── Reviews & ratings ─────────────────────────
+
+enum ReviewStatus {
+  PUBLISHED
+  /// Hidden by moderation — not shown and not counted
+  HIDDEN
+}
+
+/// One review per customer per product (editable by its author)
+model ProductReview {
+  id        String       @id @default(cuid())
+  productId String       @map("product_id")
+  product   Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    String       @map("user_id")
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// 1–5 stars
+  rating    Int
+  title     String?
+  body      String
+  status    ReviewStatus @default(PUBLISHED)
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  @@unique([productId, userId])
+  @@index([productId, status, createdAt])
+  @@map("product_reviews")
 }

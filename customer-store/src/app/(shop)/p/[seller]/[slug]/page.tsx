@@ -6,7 +6,8 @@ import ProductGallery from '@/components/product/ProductGallery'
 import BuyBox from '@/components/product/BuyBox'
 import { ProductDetailsCard, SellerCard } from '@/components/product/ProductInfo'
 import { ProductGrid } from '@/components/home/ProductRail'
-import { getProduct } from '@/lib/public-api'
+import { getProduct, getReviews } from '@/lib/public-api'
+import ReviewsSection from '@/components/reviews/ReviewsSection'
 
 export async function generateMetadata({ params }: PageProps<'/p/[seller]/[slug]'>): Promise<Metadata> {
   const { seller, slug } = await params
@@ -21,8 +22,9 @@ export async function generateMetadata({ params }: PageProps<'/p/[seller]/[slug]
 
 async function Product({ params }: PageProps<'/p/[seller]/[slug]'>) {
   const { seller, slug } = await params
-  const product = await getProduct(seller, slug)
+  const [product, reviews] = await Promise.all([getProduct(seller, slug), getReviews(seller, slug, { pageSize: 5 })])
   if (!product) notFound()
+  const emptyReviews = { productId: product.id, summary: { average: 0, count: 0, distribution: [5, 4, 3, 2, 1].map((stars) => ({ stars, count: 0 })) }, items: [], page: 1, pageSize: 5, total: 0, hasMore: false }
 
   return (
     <>
@@ -37,6 +39,9 @@ async function Product({ params }: PageProps<'/p/[seller]/[slug]'>) {
         <div className='min-w-0 lg:col-start-1'><ProductGallery images={product.images} title={product.title} /></div>
         <div className='lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:self-stretch'><BuyBox product={product} /></div>
         <div className='min-w-0 lg:col-start-1 lg:mt-8'><ProductDetailsCard product={product} /></div>
+        <div className='min-w-0 lg:col-start-1 lg:mt-5'>
+          <ReviewsSection productId={product.id} sellerSlug={seller} slug={slug} initial={reviews ?? emptyReviews} />
+        </div>
         <div className='min-w-0 lg:col-start-1 lg:mt-5'><SellerCard seller={product.seller} /></div>
       </div>
 

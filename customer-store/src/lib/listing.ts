@@ -6,11 +6,14 @@ export interface ListingFilters {
   brands: string[]
   /** Minimum discount % (10 / 25 / 50) */
   discount?: number
+  /** Minimum average stars (4 / 3 / 2 / 1 "& up") */
+  rating?: number
   inStock: boolean
 }
 
 export const EMPTY_FILTERS: ListingFilters = { sellers: [], brands: [], inStock: false }
 export const DISCOUNT_OPTIONS = [10, 25, 50]
+export const RATING_OPTIONS = [4, 3, 2, 1]
 export const SORT_KEYS = ['latest', 'deals', 'trending'] as const
 
 type ParamSource = { get(name: string): string | null }
@@ -24,12 +27,14 @@ const list = (v: string | null) => (v ? v.split(',').map((s) => s.trim()).filter
 /** Reads filters from URL params (URLSearchParams, or a wrapper around Next's searchParams object) */
 export function parseFilters(p: ParamSource): ListingFilters {
   const discount = num(p.get('discount'))
+  const rating = num(p.get('rating'))
   return {
     minPrice: num(p.get('minPrice')),
     maxPrice: num(p.get('maxPrice')),
     sellers: list(p.get('seller')),
     brands: list(p.get('brand')),
     discount: discount && DISCOUNT_OPTIONS.includes(discount) ? discount : undefined,
+    rating: rating && RATING_OPTIONS.includes(rating) ? rating : undefined,
     inStock: p.get('inStock') === '1',
   }
 }
@@ -42,12 +47,13 @@ export function filtersQuery(f: ListingFilters) {
   if (f.sellers.length) q.set('seller', [...f.sellers].sort().join(','))
   if (f.brands.length) q.set('brand', [...f.brands].sort().join(','))
   if (f.discount) q.set('discount', String(f.discount))
+  if (f.rating) q.set('rating', String(f.rating))
   if (f.inStock) q.set('inStock', '1')
   return q
 }
 
 export const activeFilterCount = (f: ListingFilters) =>
-  (f.minPrice != null || f.maxPrice != null ? 1 : 0) + f.sellers.length + f.brands.length + (f.discount ? 1 : 0) + (f.inStock ? 1 : 0)
+  (f.minPrice != null || f.maxPrice != null ? 1 : 0) + f.sellers.length + f.brands.length + (f.discount ? 1 : 0) + (f.rating ? 1 : 0) + (f.inStock ? 1 : 0)
 
 /** Next's page searchParams object → something with get() */
 export const paramsFromRecord = (sp: Record<string, string | string[] | undefined>): ParamSource => ({

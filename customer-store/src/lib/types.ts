@@ -5,6 +5,9 @@ export interface ProductCard {
   imageUrl: string | null
   seller: { name: string; slug: string }
   brand: string | null
+  /** Average stars, null until rated */
+  rating: number | null
+  ratingCount: number
   price: number
   mrp: number | null
   discountPercent: number
@@ -109,6 +112,7 @@ export interface ProductDetail {
   category: { name: string; slug: string }
   parentCategory: { name: string; slug: string } | null
   images: { id: string; url: string }[]
+  rating: { average: number; count: number }
   price: number
   mrp: number | null
   inStock: boolean
@@ -118,4 +122,25 @@ export interface ProductDetail {
   specs: { sku: string | null; weightKg: number | null; packageType: string; requiresColdChain: boolean }
   delivery: { scope: 'SELLER_PINCODE_ONLY' | 'SPECIFIC_PINCODES' | 'PAN_INDIA'; pincodes: string[] }
   related: ProductCard[]
+}
+
+export interface Review {
+  id: string
+  rating: number
+  title: string | null
+  body: string
+  createdAt: string
+  edited: boolean
+  /** "Priya S." */
+  author: string
+}
+
+export interface ReviewPage {
+  productId: string
+  summary: { average: number; count: number; distribution: { stars: number; count: number }[] }
+  items: Review[]
+  page: number
+  pageSize: number
+  total: number
+  hasMore: boolean
 }
