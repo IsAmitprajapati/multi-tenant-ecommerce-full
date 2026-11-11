@@ -14,7 +14,7 @@ const RAIL_CARD = 'w-[calc((100%-0.75rem)/2)] sm:w-[calc((100%-2rem)/3)] lg:w-[c
 
 export default function ProductRail({ products }: { products: Card[] }) {
   return (
-    <div className='no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:gap-4 sm:px-0'>
+    <div className='no-scrollbar -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:scroll-px-0 sm:gap-4 sm:px-0'>
       {products.map((p) => <ProductCard key={p.id} p={p} className={`shrink-0 snap-start ${RAIL_CARD}`} />)}
     </div>
   )
