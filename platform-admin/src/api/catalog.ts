@@ -1,6 +1,11 @@
 import Axios from "@/lib/axios";
+import type { UploadAuth } from "./seller";
 
 export interface SubCategory {
+    imageUrl: string | null
+    imageFileId: string | null
+    iconUrl: string | null
+    iconFileId: string | null
     id: string
     name: string
     slug: string
@@ -13,6 +18,10 @@ export interface SubCategory {
 }
 
 export interface Category {
+    imageUrl: string | null
+    imageFileId: string | null
+    iconUrl: string | null
+    iconFileId: string | null
     id: string
     name: string
     slug: string
@@ -30,6 +39,10 @@ export interface Category {
 }
 
 export interface CategoryDetail {
+    imageUrl: string | null
+    imageFileId: string | null
+    iconUrl: string | null
+    iconFileId: string | null
     id: string
     name: string
     slug: string
@@ -53,6 +66,10 @@ export interface CategoryPayload {
     requiresFssai?: boolean
     isActive?: boolean
     sortOrder?: number
+    /** ImageKit fileId; null removes the image */
+    imageFileId?: string | null
+    /** ImageKit fileId of the small icon; null removes it */
+    iconFileId?: string | null
 }
 
 interface ApiResponse<T> {
@@ -62,6 +79,8 @@ interface ApiResponse<T> {
 }
 
 export const catalogApi = {
+    uploadAuth: (kind: 'image' | 'icon' = 'image') =>
+        Axios.get<{ data: UploadAuth }>('/catalog/categories/upload-auth', { params: { kind } }).then(r => r.data.data),
     listCategories: () => Axios.get<ApiResponse<Category[]>>('/catalog/categories').then(r => r.data),
     getCategory: (id: string) => Axios.get<ApiResponse<CategoryDetail>>(`/catalog/categories/${id}`).then(r => r.data),
     createCategory: (payload: CategoryPayload) => Axios.post<ApiResponse<CategoryDetail>>('/catalog/categories', payload).then(r => r.data),

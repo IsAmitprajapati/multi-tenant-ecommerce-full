@@ -1,5 +1,5 @@
 import { Transform, Type } from 'class-transformer';
-import { IsBoolean, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { IsBoolean, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min, MinLength, ValidateIf, IsIn } from 'class-validator';
 import { PartialType, OmitType } from '@nestjs/mapped-types';
 
 const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
@@ -29,6 +29,19 @@ export class CreateCategoryDto {
 
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(10_000)
   sortOrder?: number;
+
+  /** ImageKit fileId uploaded from the browser; null removes the image */
+  @IsOptional() @ValidateIf((_, v) => v !== null) @IsString()
+  imageFileId?: string | null;
+
+  /** ImageKit fileId of the small icon; null removes it */
+  @IsOptional() @ValidateIf((_, v) => v !== null) @IsString()
+  iconFileId?: string | null;
+}
+
+export class CategoryUploadAuthQueryDto {
+  @IsOptional() @IsIn(['image', 'icon'])
+  kind?: 'image' | 'icon';
 }
 
 /** A category's parent can't be changed after creation */

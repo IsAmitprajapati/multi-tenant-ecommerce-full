@@ -1,6 +1,6 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
 import { CategoriesService } from './categories.service.js';
-import { CategoryStatusDto, CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto.js';
+import { CategoryStatusDto, CategoryUploadAuthQueryDto, CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto.js';
 import { RequirePermission } from '../permissions/require-permission.decorator.js';
 
 /** Platform admin › Global catalog › Categories — gated by GLOBAL_CATALOG */
@@ -12,6 +12,13 @@ export class CategoriesController {
   @RequirePermission('GLOBAL_CATALOG', 'VIEW')
   list() {
     return this.categories.list();
+  }
+
+  /** Credentials for uploading a category image straight to ImageKit */
+  @Get('upload-auth')
+  @RequirePermission('GLOBAL_CATALOG', 'EDIT')
+  uploadAuth(@Query() q: CategoryUploadAuthQueryDto) {
+    return this.categories.uploadAuth(q.kind);
   }
 
   @Get(':id')

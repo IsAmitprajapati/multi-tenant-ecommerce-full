@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { ImageKitStorageService } from '../sellers/imagekit-storage.service.js';
 import { CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto.js';
 
 const FALLBACK_COMMISSION_RATE = 10;
@@ -13,7 +14,29 @@ const slugify = (v: string) =>
  */
 @Injectable()
 export class CategoriesService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: ImageKitStorageService,
+  ) { }
+
+  uploadAuth(kind: 'image' | 'icon' = 'image') {
+    return { data: this.storage.getUploadAuth(kind === 'icon' ? 'categoryIcon' : 'category') };
+  }
+
+  /** undefined = leave as is, null = remove, string = verify the new upload */
+  private async resolveImage(fileId: string | null | undefined, currentFileId?: string | null) {
+    if (fileId === undefined || fileId === currentFileId) return {};
+    if (fileId === null) return { imageFileId: null, imageUrl: null };
+    const file = await this.storage.verify(fileId, 'category');
+    return { imageFileId: file.fileId, imageUrl: file.url };
+  }
+
+  private async resolveIcon(fileId: string | null | undefined, currentFileId?: string | null) {
+    if (fileId === undefined || fileId === currentFileId) return {};
+    if (fileId === null) return { iconFileId: null, iconUrl: null };
+    const file = await this.storage.verify(fileId, 'categoryIcon');
+    return { iconFileId: file.fileId, iconUrl: file.url };
+  }
 
   private serialize<T extends { defaultCommissionRate: unknown }>(c: T) {
     return { ...c, defaultCommissionRate: c.defaultCommissionRate == null ? null : Number(c.defaultCommissionRate) };
@@ -79,6 +102,7 @@ export class CategoriesService {
     await this.assertNameFree(dto.name, parent?.id ?? null);
 
     const last = await this.prisma.productCategory.findFirst({ where: { parentId: parent?.id ?? null }, orderBy: { sortOrder: 'desc' }, select: { sortOrder: true } });
+    const image = { ...(await this.resolveImage(dto.imageFileId)), ...(await this.resolveIcon(dto.iconFileId)) };
     const created = await this.prisma.productCategory.create({
       data: {
         name: dto.name,
@@ -90,6 +114,7 @@ export class CategoriesService {
         requiresFssai: parent ? parent.requiresFssai : (dto.requiresFssai ?? false),
         isActive: dto.isActive ?? true,
         sortOrder: dto.sortOrder ?? (last ? last.sortOrder + 1 : 0),
+        ...image,
       },
       select: { id: true },
     });
@@ -97,9 +122,10 @@ export class CategoriesService {
   }
 
   async update(id: string, dto: UpdateCategoryDto) {
-    const existing = await this.prisma.productCategory.findUnique({ where: { id }, select: { id: true, parentId: true } });
+    const existing = await this.prisma.productCategory.findUnique({ where: { id }, select: { id: true, parentId: true, imageFileId: true, iconFileId: true } });
     if (!existing) throw new NotFoundException('Category not found');
     if (dto.name) await this.assertNameFree(dto.name, existing.parentId, id);
+    const image = { ...(await this.resolveImage(dto.imageFileId, existing.imageFileId)), ...(await this.resolveIcon(dto.iconFileId, existing.iconFileId)) };
     const isTop = !existing.parentId;
 
     await this.prisma.$transaction(async (tx) => {
@@ -112,6 +138,7 @@ export class CategoriesService {
           ...(isTop && dto.requiresFssai !== undefined && { requiresFssai: dto.requiresFssai }),
           ...(dto.isActive !== undefined && { isActive: dto.isActive }),
           ...(dto.sortOrder !== undefined && { sortOrder: dto.sortOrder }),
+          ...image,
         },
       });
       // Keep sub-categories' FSSAI flag in step with their parent

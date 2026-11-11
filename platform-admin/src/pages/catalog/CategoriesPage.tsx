@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { createColumnHelper } from '@tanstack/react-table'
-import { EyeIcon, FolderPlusIcon, LayoutGridIcon, MoreHorizontalIcon, PencilIcon, PlusIcon, PowerIcon, SearchIcon, Trash2Icon } from 'lucide-react'
+import { EyeIcon, FolderPlusIcon, LayoutGridIcon, MoreHorizontalIcon, PencilIcon, PlusIcon, PowerIcon, SearchIcon, Trash2Icon, ImageIcon } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -68,9 +68,12 @@ export default function CategoriesPage() {
         col.accessor('name', {
             header: 'Category',
             cell: ({ row }) => (
-                <button type='button' onClick={() => navigate(`${CATALOG_PATH}/${row.original.id}`)} className='group cursor-pointer text-left'>
-                    <div className='font-semibold group-hover:text-primary'>{row.original.name}</div>
-                    {row.original.description && <div className='max-w-sm truncate text-xs text-muted-foreground'>{row.original.description}</div>}
+                <button type='button' onClick={() => navigate(`${CATALOG_PATH}/${row.original.id}`)} className='group flex cursor-pointer items-center gap-3 text-left'>
+                    <span className='flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted'>{row.original.iconUrl ? <img src={row.original.iconUrl} alt='' className='size-6 object-contain' /> : row.original.imageUrl ? <img src={row.original.imageUrl} alt='' className='size-full object-cover' /> : <ImageIcon className='size-4 text-muted-foreground' />}</span>
+                    <span className='min-w-0'>
+                        <span className='block font-semibold group-hover:text-primary'>{row.original.name}</span>
+                        {row.original.description && <span className='block max-w-sm truncate text-xs text-muted-foreground'>{row.original.description}</span>}
+                    </span>
                 </button>
             ),
         }),

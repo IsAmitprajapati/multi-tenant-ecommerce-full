@@ -4,6 +4,7 @@ export interface ProductCard {
   title: string
   imageUrl: string | null
   seller: { name: string; slug: string }
+  brand: string | null
   price: number
   mrp: number | null
   discountPercent: number
@@ -16,8 +17,12 @@ export interface PublicCategory {
   name: string
   slug: string
   description: string | null
+  /** Small icon (home tiles, menus); falls back to a built-in icon */
+  iconUrl: string | null
+  /** Picture for category page cards */
+  imageUrl: string | null
   productsCount: number
-  children: { id: string; name: string; slug: string }[]
+  children: { id: string; name: string; slug: string; iconUrl: string | null; imageUrl: string | null; productsCount: number }[]
 }
 
 export interface HomeBanner {
@@ -35,7 +40,7 @@ export interface PromoCard { tag: string | null; title: string; linkUrl: string 
 export type ProductSource = 'DEALS' | 'LATEST' | 'TRENDING' | 'CATEGORY' | 'MANUAL'
 
 export type HomeSection =
-  | { id: string; type: 'SHOP_BY_CATEGORY'; title: string; subtitle: string | null; categories: PublicCategory[]; viewAllHref: null }
+  | { id: string; type: 'SHOP_BY_CATEGORY'; title: string; subtitle: string | null; categories: PublicCategory[]; viewAllHref: string | null }
   | { id: string; type: 'PROMO_CARDS'; title: string; subtitle: string | null; cards: PromoCard[]; viewAllHref: null }
   | { id: string; type: 'PRODUCTS'; title: string; subtitle: string | null; source: ProductSource; products: ProductCard[]; viewAllHref: string | null }
 
@@ -44,10 +49,21 @@ export interface HomeData {
   sections: HomeSection[]
 }
 
+export interface ListingFacets {
+  price: { min: number; max: number }
+  sellers: { slug: string; name: string; count: number }[]
+  brands: { name: string; count: number }[]
+  /** False until customer reviews exist */
+  ratingsAvailable: boolean
+}
+
 export interface ProductListing {
   category: { id: string; name: string; slug: string; description: string | null } | null
   sort: string
   products: ProductCard[]
+  /** Category listings: total matches and filter options */
+  total?: number
+  facets?: ListingFacets
 }
 
 export interface CurrentUser {

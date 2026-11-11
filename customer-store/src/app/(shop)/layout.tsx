@@ -6,7 +6,7 @@ export default function ShopLayout({ children }: LayoutProps<'/'>) {
     <>
       <SiteHeader />
       <main className='flex-1'>{children}</main>
-      <SiteFooter year={2026} />
+      <SiteFooter />
     </>
   )
 }

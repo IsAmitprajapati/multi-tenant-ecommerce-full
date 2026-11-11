@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { createColumnHelper } from '@tanstack/react-table'
-import { FolderPlusIcon, MoreHorizontalIcon, PencilIcon, PowerIcon, Trash2Icon } from 'lucide-react'
+import { FolderPlusIcon, ImageIcon, MoreHorizontalIcon, PencilIcon, PowerIcon, Trash2Icon } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -84,9 +84,12 @@ export default function CategoryDetailPage() {
         col.accessor('name', {
             header: 'Sub-category',
             cell: ({ row }) => (
-                <div>
-                    <div className='font-semibold'>{row.original.name}</div>
-                    {row.original.description && <div className='max-w-md truncate text-xs text-muted-foreground'>{row.original.description}</div>}
+                <div className='flex items-center gap-3'>
+                    <span className='flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted'>{row.original.iconUrl ? <img src={row.original.iconUrl} alt='' className='size-6 object-contain' /> : row.original.imageUrl ? <img src={row.original.imageUrl} alt='' className='size-full object-cover' /> : <ImageIcon className='size-4 text-muted-foreground' />}</span>
+                    <div className='min-w-0'>
+                        <div className='font-semibold'>{row.original.name}</div>
+                        {row.original.description && <div className='max-w-md truncate text-xs text-muted-foreground'>{row.original.description}</div>}
+                    </div>
                 </div>
             ),
         }),
@@ -143,7 +146,11 @@ export default function CategoryDetailPage() {
                     </>
                 )}
             >
-                <ActiveBadge active={cat.isActive} />
+                <div className='flex items-center gap-3'>
+                    {cat.iconUrl && <img src={cat.iconUrl} alt='' className='size-12 rounded-lg border bg-muted object-contain p-2' />}
+                    {cat.imageUrl && <img src={cat.imageUrl} alt='' className='h-12 w-24 rounded-lg border object-cover' />}
+                    <ActiveBadge active={cat.isActive} />
+                </div>
             </PageHeader>
 
             <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>

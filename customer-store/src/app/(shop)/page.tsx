@@ -28,8 +28,7 @@ export default async function HomePage() {
             <PromoCards cards={s.cards} />
           ) : (
             <>
-              {/* Every category is shown right here, so no "View all" link for categories */}
-              <SectionHeading title={s.title} subtitle={s.subtitle} href={s.type === 'PRODUCTS' ? s.viewAllHref : null} linkLabel='See all' />
+              <SectionHeading title={s.title} subtitle={s.subtitle} href={s.viewAllHref} linkLabel={s.type === 'PRODUCTS' ? 'See all' : 'View all'} />
               {s.type === 'SHOP_BY_CATEGORY'
                 ? <CategoryGrid categories={s.categories} />
                 : <ProductRail products={s.products} />}

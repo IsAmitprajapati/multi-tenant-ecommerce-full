@@ -333,6 +333,12 @@ model ProductCategory {
   /// Default commission % for sellers in this (top-level) category
   defaultCommissionRate Decimal?          @map("default_commission_rate") @db.Decimal(5, 2)
   requiresFssai         Boolean           @default(false) @map("requires_fssai")
+  /// Small icon for home tiles, menus and the sidebar (ImageKit). Optional — a built-in icon is shown without it.
+  iconFileId            String?           @map("icon_file_id")
+  iconUrl               String?           @map("icon_url")
+  /// Picture for the category page cards (ImageKit). Optional.
+  imageFileId           String?           @map("image_file_id")
+  imageUrl              String?           @map("image_url")
   isActive              Boolean           @default(true) @map("is_active")
   sortOrder             Int               @default(0) @map("sort_order")
   products              Product[]

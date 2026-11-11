@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { getAxiosErrorMessage } from '@/lib/api.error'
 import { catalogApi, type CategoryDetail } from '@/api/catalog'
 import { CATALOG_PATH } from './CategoriesPage'
+import CategoryImageField, { type CategoryImage } from './_component/CategoryImageField'
 
 /**
  *   /categories/new                 → new top-level category
@@ -33,6 +34,8 @@ export default function CategoryFormPage() {
     const [saving, setSaving] = useState(false)
     const [errors, setErrors] = useState<Record<string, string>>({})
     const [form, setForm] = useState({ name: '', description: '', defaultCommissionRate: '10', requiresFssai: false, isActive: true })
+    const [image, setImage] = useState<CategoryImage | null>(null)
+    const [icon, setIcon] = useState<CategoryImage | null>(null)
 
     useEffect(() => {
         const load = async () => {
@@ -42,6 +45,8 @@ export default function CategoryFormPage() {
                     setExisting(c)
                     setParent(c.parent)
                     setForm({ name: c.name, description: c.description ?? '', defaultCommissionRate: String(c.defaultCommissionRate ?? 10), requiresFssai: c.requiresFssai, isActive: c.isActive })
+                    setImage(c.imageFileId && c.imageUrl ? { fileId: c.imageFileId, url: c.imageUrl } : null)
+                    setIcon(c.iconFileId && c.iconUrl ? { fileId: c.iconFileId, url: c.iconUrl } : null)
                 } else if (parentIdParam) {
                     const p = (await catalogApi.getCategory(parentIdParam)).data
                     if (p.parentId) throw new Error('Sub-categories can’t have their own sub-categories')
@@ -72,6 +77,8 @@ export default function CategoryFormPage() {
             name: form.name.trim(),
             description: form.description.trim(),
             isActive: form.isActive,
+            imageFileId: image?.fileId ?? null,
+            iconFileId: icon?.fileId ?? null,
             ...(!isSub && { defaultCommissionRate: rate, requiresFssai: form.requiresFssai }),
         }
         setSaving(true)
@@ -118,6 +125,14 @@ export default function CategoryFormPage() {
                             <Input id='name' className='h-10' maxLength={80} placeholder={isSub ? 'e.g. Fruits' : 'e.g. Grocery & food'} value={form.name}
                                 aria-invalid={!!errors.name} onChange={e => set('name', e.target.value)} autoFocus />
                             {errors.name && <p className='text-xs text-destructive'>{errors.name}</p>}
+                        </div>
+                        <div className='grid gap-1.5'>
+                            <Label className='text-xs font-semibold text-muted-foreground'>Icon <span className='font-normal'>(optional)</span></Label>
+                            <CategoryImageField kind='icon' value={icon} onChange={setIcon} disabled={saving} />
+                        </div>
+                        <div className='grid gap-1.5'>
+                            <Label className='text-xs font-semibold text-muted-foreground'>Image <span className='font-normal'>(optional)</span></Label>
+                            <CategoryImageField kind='image' value={image} onChange={setImage} disabled={saving} />
                         </div>
                         <div className='grid gap-1.5'>
                             <Label htmlFor='description' className='text-xs font-semibold text-muted-foreground'>Description <span className='font-normal'>(optional)</span></Label>

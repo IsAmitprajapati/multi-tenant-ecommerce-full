@@ -78,6 +78,29 @@ async function ensureGallery(productId: string, image: string) {
   return added
 }
 
+/** Demo private-label brands per demo seller (assigned round-robin to products without a brand) */
+const DEMO_BRANDS: Record<string, string[]> = {
+  'demo-green-grocer': ['Green Grocer Farms', 'FreshFarm', 'NatureCo'],
+  'demo-urban-threads': ['Urban Basics', 'Thread & Co'],
+  'demo-circuithub': ['CircuitHub Pro', 'VoltEdge', 'SoundWave'],
+  'demo-casa-home': ['Casa Living', 'HomeCraft'],
+}
+
+async function ensureBrands(sellerSlug: string) {
+  const names = DEMO_BRANDS[sellerSlug]
+  const seller = await prisma.seller.findUnique({ where: { slug: sellerSlug }, select: { id: true } })
+  if (!names || !seller) return 0
+  const brands = []
+  for (const name of names) {
+    brands.push(await prisma.brand.upsert({ where: { sellerId_name: { sellerId: seller.id, name } }, create: { sellerId: seller.id, name }, update: {}, select: { id: true } }))
+  }
+  const products = await prisma.product.findMany({ where: { sellerId: seller.id, brandId: null }, orderBy: { sku: 'asc' }, select: { id: true } })
+  for (const [i, p] of products.entries()) {
+    await prisma.product.update({ where: { id: p.id }, data: { brandId: brands[i % brands.length]!.id } })
+  }
+  return products.length
+}
+
 /** Small deterministic "random" so re-runs look the same */
 const stockFor = (i: number) => (i % 13 === 7 ? 0 : 15 + ((i * 37) % 90))
 
@@ -99,7 +122,8 @@ async function add(data: DemoData) {
         const existing = await prisma.product.findFirst({ where: { seller: { slug: s.slug }, slug: slugify(p.title) }, select: { id: true } })
         if (existing) added += await ensureGallery(existing.id, p.image)
       }
-      console.log(`  = ${s.name} already exists${added ? ` — added ${added} gallery images` : ''}`)
+      const branded = await ensureBrands(s.slug)
+      console.log(`  = ${s.name} already exists${added ? ` — added ${added} gallery images` : ''}${branded ? ` — branded ${branded} products` : ''}`)
       index += s.products.length
       continue
     }
@@ -152,8 +176,32 @@ async function add(data: DemoData) {
         },
       })
     }
+    await ensureBrands(s.slug)
     console.log(`  + ${s.name}: ${s.products.length} products`)
   }
+
+  // Category tile images — only where the admin hasn't uploaded one
+  for (const slug of ['grocery', 'fashion', 'electronics', 'home', 'beauty', 'other']) {
+    const file = `demo-category-${slug}.jpg`
+    if (!existsSync(join(DIR, 'images', file))) continue
+    const cat = await prisma.productCategory.findFirst({ where: { slug, parentId: null }, select: { id: true, imageFileId: true } })
+    if (!cat || cat.imageFileId) continue
+    const img = await upload(file, 'catalog/categories')
+    await prisma.productCategory.update({ where: { id: cat.id }, data: { imageFileId: img.fileId, imageUrl: img.url } })
+    console.log(`  + category image: ${slug}`)
+  }
+
+  // Sub-category card images for the category page — only where the admin hasn't uploaded one
+  const subs = await prisma.productCategory.findMany({ where: { parentId: { not: null }, imageFileId: null }, select: { id: true, slug: true } })
+  let subImages = 0
+  for (const sub of subs) {
+    const file = `demo-subcategory-${sub.slug}.jpg`
+    if (!existsSync(join(DIR, 'images', file))) continue
+    const img = await upload(file, 'catalog/categories')
+    await prisma.productCategory.update({ where: { id: sub.id }, data: { imageFileId: img.fileId, imageUrl: img.url } })
+    subImages++
+  }
+  if (subImages) console.log(`  + ${subImages} sub-category images`)
 
   // Banners
   for (const b of data.banners) {
@@ -207,7 +255,13 @@ async function remove() {
   const images = await prisma.productImage.findMany({ where: { product: { sellerId: { in: sellerIds } } }, select: { fileId: true } })
   const banners = await prisma.homeBanner.findMany({ where: { imageUrl: { contains: '/demo-banner-' } }, select: { id: true, imageFileId: true } })
 
-  if (PRIVATE_KEY) await deleteFiles([...images.map((i) => i.fileId), ...banners.map((b) => b.imageFileId)])
+  const catImages = await prisma.productCategory.findMany({
+    where: { OR: [{ imageUrl: { contains: '/demo-category-' } }, { imageUrl: { contains: '/demo-subcategory-' } }] },
+    select: { id: true, imageFileId: true },
+  })
+
+  if (PRIVATE_KEY) await deleteFiles([...images.map((i) => i.fileId), ...banners.map((b) => b.imageFileId), ...catImages.flatMap((c) => (c.imageFileId ? [c.imageFileId] : []))])
+  await prisma.productCategory.updateMany({ where: { id: { in: catImages.map((c) => c.id) } }, data: { imageFileId: null, imageUrl: null } })
   await prisma.homeBanner.deleteMany({ where: { id: { in: banners.map((b) => b.id) } } })
   // Demo sections, unless an admin has since added non-demo picks to them
   for (const s of await prisma.homeSection.findMany({ where: { title: { in: DEMO_SECTION_TITLES } }, include: { products: { include: { product: { select: { sellerId: true } } } } } })) {

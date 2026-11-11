@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { StorefrontService } from './storefront.service.js';
 import {
-  CreateBannerDto, CreateSectionDto, ProductPickerQueryDto, ReorderDto, StorefrontSettingsDto, ToggleDto, UpdateBannerDto, UpdateSectionDto,
+  CreateBannerDto, CreateSectionDto, ProductListQueryDto, ProductPickerQueryDto, ReorderDto, StorefrontSettingsDto, ToggleDto, UpdateBannerDto, UpdateSectionDto,
 } from './dto/storefront.dto.js';
 import { RequirePermission } from '../permissions/require-permission.decorator.js';
 
@@ -109,7 +109,19 @@ export class PublicStorefrontController {
   }
 
   @Get('products')
-  products(@Query('category') category?: string, @Query('sort') sort?: string, @Query('q') q?: string) {
-    return this.storefront.publicProducts({ category, sort, q: typeof q === 'string' ? q : undefined });
+  products(@Query() query: ProductListQueryDto) {
+    return this.storefront.publicProducts({
+      category: query.category,
+      sort: query.sort,
+      q: query.q,
+      filters: {
+        minPrice: query.minPrice,
+        maxPrice: query.maxPrice,
+        sellers: query.seller,
+        brands: query.brand,
+        minDiscount: query.discount,
+        inStock: query.inStock,
+      },
+    });
   }
 }

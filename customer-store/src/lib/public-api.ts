@@ -1,6 +1,7 @@
 import { cacheLife, cacheTag } from 'next/cache'
 import { API_URL } from './config'
 import type { HomeData, ProductDetail, ProductListing, PublicCategory } from './types'
+import { filtersQuery, type ListingFilters } from './listing'
 
 /**
  * Public storefront data (no login). Cached on the server and refreshed every minute,
@@ -38,10 +39,10 @@ export async function getCategories(): Promise<PublicCategory[]> {
 }
 
 /** null = category not found */
-export async function getProducts(params: { category?: string; sort?: string; q?: string }): Promise<ProductListing | null> {
+export async function getProducts(params: { category?: string; sort?: string; q?: string; filters?: ListingFilters }): Promise<ProductListing | null> {
   'use cache'
   cacheLife('minutes')
-  const qs = new URLSearchParams()
+  const qs = params.filters ? filtersQuery(params.filters) : new URLSearchParams()
   if (params.category) qs.set('category', params.category)
   if (params.sort) qs.set('sort', params.sort)
   if (params.q) qs.set('q', params.q)

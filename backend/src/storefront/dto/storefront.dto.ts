@@ -120,3 +120,42 @@ export class ProductPickerQueryDto {
   @IsOptional() @IsString()
   categoryId?: string;
 }
+
+/** Comma-separated or repeated query params → string[] */
+const toList = ({ value }: { value: unknown }) =>
+  (Array.isArray(value) ? value : typeof value === 'string' ? value.split(',') : [])
+    .map((v) => String(v).trim()).filter(Boolean).slice(0, 30);
+
+/** GET /public/products — search, category listing and filters */
+export class ProductListQueryDto {
+  @IsOptional() @IsString() @MaxLength(120)
+  category?: string;
+
+  @IsOptional() @IsString() @MaxLength(20)
+  sort?: string;
+
+  @IsOptional() @Transform(trim) @IsString() @MaxLength(100)
+  q?: string;
+
+  @IsOptional() @Type(() => Number) @Min(0)
+  minPrice?: number;
+
+  @IsOptional() @Type(() => Number) @Min(0)
+  maxPrice?: number;
+
+  /** Seller slugs */
+  @IsOptional() @Transform(toList) @IsArray() @IsString({ each: true })
+  seller?: string[];
+
+  /** Brand names */
+  @IsOptional() @Transform(toList) @IsArray() @IsString({ each: true })
+  brand?: string[];
+
+  /** Minimum discount % */
+  @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(95)
+  discount?: number;
+
+  @IsOptional() @Transform(({ value }) => value === true || value === 'true' || value === '1')
+  @IsBoolean()
+  inStock?: boolean;
+}

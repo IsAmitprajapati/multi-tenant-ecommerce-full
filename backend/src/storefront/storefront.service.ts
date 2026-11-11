@@ -9,6 +9,23 @@ import {
 
 const SETTINGS_ID = 'default';
 
+/** Rounds up to 1/2/2.5/5 × 10ⁿ: 99 → 100, 540 → 600, 1,999 → 2,000, 54,999 → 60,000 */
+export function niceCeil(n: number) {
+  if (n <= 0) return 0;
+  const pow = 10 ** Math.floor(Math.log10(n));
+  for (const m of [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]) if (m * pow >= n) return m * pow;
+  return 10 * pow;
+}
+
+export interface ListingFilters {
+  minPrice?: number;
+  maxPrice?: number;
+  sellers?: string[];
+  brands?: string[];
+  minDiscount?: number;
+  inStock?: boolean;
+}
+
 export type PromoCard = { tag: string | null; title: string; linkUrl: string | null; theme: PromoCardDto['theme'] };
 
 /** Only products a shopper may see: active product, active seller, active (sub-)category */
@@ -20,6 +37,7 @@ const visibleProduct = {
 
 const cardInclude = {
   seller: { select: { name: true, slug: true } },
+  brand: { select: { name: true } },
   images: { select: { url: true }, orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }], take: 1 },
   variants: { select: { price: true, compareAtPrice: true, inventoryQty: true }, orderBy: { sortOrder: 'asc' } },
 } satisfies Prisma.ProductInclude;
@@ -32,6 +50,7 @@ export interface ProductCard {
   title: string;
   imageUrl: string | null;
   seller: { name: string; slug: string };
+  brand: string | null;
   price: number;
   /** Compare-at price (MRP) when higher than price */
   mrp: number | null;
@@ -53,6 +72,7 @@ export function toCard(p: CardRow): ProductCard {
     title: p.title,
     imageUrl: p.images[0]?.url ?? null,
     seller: p.seller,
+    brand: p.brand?.name ?? null,
     price: cheapest.price,
     mrp,
     discountPercent: mrp ? Math.round(((mrp - cheapest.price) / mrp) * 100) : 0,
@@ -389,8 +409,8 @@ export class StorefrontService {
       where: { parentId: null, isActive: true, ...(ids?.length && { id: { in: ids } }) },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       select: {
-        id: true, name: true, slug: true, description: true,
-        children: { where: { isActive: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], select: { id: true, name: true, slug: true } },
+        id: true, name: true, slug: true, description: true, imageUrl: true, iconUrl: true,
+        children: { where: { isActive: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], select: { id: true, name: true, slug: true, imageUrl: true, iconUrl: true } },
       },
     });
     const counts = await this.prisma.product.groupBy({
@@ -404,7 +424,12 @@ export class StorefrontService {
       const parent = subToParent.get(row.categoryId) ?? row.categoryId;
       total.set(parent, (total.get(parent) ?? 0) + row._count._all);
     }
-    const out = cats.map((c) => ({ ...c, productsCount: total.get(c.id) ?? 0 }));
+    const perCategory = new Map(counts.map((r) => [r.categoryId, r._count._all]));
+    const out = cats.map((c) => ({
+      ...c,
+      productsCount: total.get(c.id) ?? 0,
+      children: c.children.map((s) => ({ ...s, productsCount: perCategory.get(s.id) ?? 0 })),
+    }));
     // Keep the admin's chosen order
     return ids?.length ? ids.map((id) => out.find((c) => c.id === id)).filter((c) => !!c) : out;
   }
@@ -440,7 +465,7 @@ export class StorefrontService {
       }
       if (s.type === 'SHOP_BY_CATEGORY') {
         const categories = await this.publicCategories(s.categoryIds);
-        return categories.length ? { ...base, categories, viewAllHref: null } : null;
+        return categories.length ? { ...base, categories, viewAllHref: '/categories' } : null;
       }
       if (!s.source || (s.source === 'CATEGORY' && !s.category?.isActive)) return null;
       const products = await this.productsFor(s.source, { categoryId: s.categoryId, sectionId: s.id, limit: s.productLimit });
@@ -517,7 +542,7 @@ export class StorefrontService {
   }
 
   /** Product listing for "View all" and category pages */
-  async publicProducts(params: { category?: string; sort?: string; q?: string }) {
+  async publicProducts(params: { category?: string; sort?: string; q?: string; filters?: ListingFilters }) {
     const q = params.q?.trim().slice(0, 100);
     if (q) {
       const rows = await this.prisma.product.findMany({
@@ -542,18 +567,70 @@ export class StorefrontService {
       return { category: null, sort: sort || 'LATEST', q, products: cards };
     }
 
-    let category: { id: string; name: string; slug: string; description: string | null } | null = null;
+    let category: { id: string; name: string; slug: string; description: string | null; parentId: string | null } | null = null;
     if (params.category) {
       category = await this.prisma.productCategory.findFirst({
         where: { slug: params.category, isActive: true },
-        select: { id: true, name: true, slug: true, description: true },
+        select: { id: true, name: true, slug: true, description: true, parentId: true },
       });
       if (!category) throw new NotFoundException('Category not found');
+      return this.categoryListing(category, (params.sort ?? '').toUpperCase(), params.filters ?? {});
     }
     const sort = (params.sort ?? '').toUpperCase();
-    const source: HomeProductSource = category ? 'CATEGORY' : sort === 'DEALS' || sort === 'TRENDING' ? sort : 'LATEST';
-    const products = await this.productsFor(source, { categoryId: category?.id, limit: 40 });
-    const sorted = category && sort === 'DEALS' ? [...products].sort((a, b) => b.discountPercent - a.discountPercent) : products;
-    return { category, sort: category ? (sort || 'LATEST') : source, products: sorted };
+    const source: HomeProductSource = sort === 'DEALS' || sort === 'TRENDING' ? sort : 'LATEST';
+    const products = await this.productsFor(source, { limit: 40 });
+    return { category, sort: source, products };
+  }
+
+  /**
+   * Category product list with filters + the facets shoppers can filter by.
+   * Card price/discount come from the cheapest option, so filtering happens on the computed cards.
+   */
+  private async categoryListing(
+    category: { id: string; name: string; slug: string; description: string | null; parentId: string | null },
+    sort: string,
+    f: ListingFilters,
+  ) {
+    // Load the whole top-level category once: the price range spans all of it, the list is this (sub-)category
+    const topId = category.parentId ?? category.id;
+    const rows = await this.prisma.product.findMany({
+      where: { ...visibleProduct, AND: [{ OR: [{ categoryId: topId }, { category: { parentId: topId } }] }] },
+      include: cardInclude,
+      orderBy: sort === 'TRENDING' ? [{ firstOrderedAt: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }] : [{ createdAt: 'desc' }],
+      take: 1000,
+    });
+    const topMax = rows.length ? Math.max(...rows.map((r) => toCard(r).price)) : 0;
+    const all = (category.parentId ? rows.filter((r) => r.categoryId === category.id) : rows).map(toCard);
+
+    // Facets describe the whole category (before filters) so options don't disappear while choosing
+    const count = <K extends string>(items: (K | null)[]) => {
+      const m = new Map<K, number>();
+      for (const k of items) if (k) m.set(k, (m.get(k) ?? 0) + 1);
+      return m;
+    };
+    const sellerCounts = count(all.map((c) => c.seller.slug));
+    const sellerNames = new Map(all.map((c) => [c.seller.slug, c.seller.name]));
+    const brandCounts = count(all.map((c) => c.brand));
+    const facets = {
+      // ₹0 → the category's highest price rounded up to a friendly number (same range for every sub-category)
+      price: { min: 0, max: niceCeil(topMax) },
+      sellers: [...sellerCounts].map(([slug, n]) => ({ slug, name: sellerNames.get(slug)!, count: n })).sort((a, b) => a.name.localeCompare(b.name)),
+      brands: [...brandCounts].map(([name, n]) => ({ name, count: n })).sort((a, b) => a.name.localeCompare(b.name)),
+      // No reviews exist yet; the storefront shows the rating filter as unavailable until they do
+      ratingsAvailable: false,
+    };
+
+    const sellers = new Set(f.sellers ?? []);
+    const brands = new Set((f.brands ?? []).map((b) => b.toLowerCase()));
+    let products = all.filter((c) =>
+      (f.minPrice == null || c.price >= f.minPrice) &&
+      (f.maxPrice == null || c.price <= f.maxPrice) &&
+      (!sellers.size || sellers.has(c.seller.slug)) &&
+      (!brands.size || (c.brand != null && brands.has(c.brand.toLowerCase()))) &&
+      (!f.minDiscount || c.discountPercent >= f.minDiscount) &&
+      (!f.inStock || c.inStock));
+    if (sort === 'DEALS') products = [...products].sort((a, b) => b.discountPercent - a.discountPercent);
+
+    return { category, sort: sort || 'LATEST', total: products.length, products: products.slice(0, 120), facets };
   }
 }
