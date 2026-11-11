@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import bcrypt from 'bcryptjs';
@@ -8,7 +9,10 @@ import { AdminCreateUserDto, AdminUpdateUserDto, ListAdminUsersQueryDto } from '
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) { }
 
   /****Find By User Email */
   findByEmail(email: string) {
@@ -31,6 +35,12 @@ export class UsersService {
   }
 
   async update(id: string, data: UpdateUserDto) {
+    if (data.dateOfBirth) {
+      const dob = new Date(data.dateOfBirth)
+      const age = (Date.now() - dob.getTime()) / (365.25 * 24 * 3600 * 1000)
+      if (Number.isNaN(age) || age < 13 || age > 120) throw new BadRequestException('Enter a valid date of birth (you must be at least 13)')
+    }
+    const before = await this.prisma.user.findUnique({ where: { id }, select: { phone: true, userType: true } })
     const user = await this.prisma.user.update({
       where: {
         id: id
@@ -38,15 +48,22 @@ export class UsersService {
       data: {
         fullName: data?.fullName,
         email: data?.email,
-        phone: data?.phone
+        phone: data?.phone,
+        ...(data.gender !== undefined && { gender: data.gender }),
+        ...(data.dateOfBirth !== undefined && { dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null }),
       },
       select: {
         fullName: true,
         email: true,
         phone: true,
+        gender: true,
+        dateOfBirth: true,
         id: true
       }
     })
+    if (before?.userType === 'CUSTOMER') {
+      await this.notifications.notify(id, 'ACCOUNT', before.phone !== user.phone ? 'Your phone number was updated' : 'Your profile was updated', { link: '/account' })
+    }
     return {
       success: true,
       message: "Update successfully",
@@ -77,6 +94,7 @@ export class UsersService {
         }
       })
 
+      await this.notifications.notify(id, 'ACCOUNT', 'Your password was changed', { body: 'If this wasn’t you, reset your password right away.', link: '/account/security' })
       return {
         success: true,
         message: "Password Change successfully"

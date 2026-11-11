@@ -16,6 +16,8 @@ import { StorefrontModule } from './storefront/storefront.module.js';
 import { ReviewsModule } from './reviews/reviews.module.js';
 import { CartModule } from './cart/cart.module.js';
 import { WishlistModule } from './wishlist/wishlist.module.js';
+import { NotificationsModule } from './notifications/notifications.module.js';
+import { AccountModule } from './account/account.module.js';
 
 @Module({
 
@@ -37,6 +39,8 @@ import { WishlistModule } from './wishlist/wishlist.module.js';
     ReviewsModule,
     CartModule,
     WishlistModule,
+    NotificationsModule,
+    AccountModule,
   ],
   controllers: [AppController],
   providers: [AppService],

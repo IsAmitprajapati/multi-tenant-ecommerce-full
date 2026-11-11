@@ -42,6 +42,14 @@ model User {
 
   passwordUpdatedAt DateTime @default(now()) @map("password_updated_at")
 
+  /// Shopper profile extras (storefront My account)
+  gender            Gender?
+  dateOfBirth       DateTime?      @map("date_of_birth") @db.Date
+  /// { topics: { orderUpdates, promotions, priceDrops, newArrivals }, channels: { push, email, sms } }
+  notificationPrefs Json?          @map("notification_prefs")
+  addresses         Address[]
+  notifications     Notification[]
+
   passwordResetOtps PasswordResetOtp[]
   sessions          UserSession[]
 
@@ -672,4 +680,60 @@ model WishlistItem {
   @@unique([userId, productId])
   @@index([userId, createdAt])
   @@map("wishlist_items")
+}
+
+// ───────────────────────── Shopper account ─────────────────────────
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+/// Saved delivery addresses (one can be the default)
+model Address {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// "Home", "Work" or the shopper's own name for it
+  label     String
+  fullName  String   @map("full_name")
+  phone     String
+  /// Flat / house no., building
+  line1     String
+  locality  String
+  landmark  String?
+  city      String
+  state     String
+  pincode   String
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("addresses")
+}
+
+enum NotificationCategory {
+  ORDERS
+  OFFERS
+  ACCOUNT
+}
+
+/// In-app notifications shown on the storefront (My account › Notifications)
+model Notification {
+  id        String               @id @default(cuid())
+  userId    String               @map("user_id")
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  NotificationCategory
+  title     String
+  body      String?
+  /// Where tapping it goes, e.g. /account/addresses
+  link      String?
+  readAt    DateTime?            @map("read_at")
+  createdAt DateTime             @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@map("notifications")
 }

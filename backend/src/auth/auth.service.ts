@@ -11,6 +11,7 @@ import bcrypt from 'bcryptjs';
 import { randomInt } from 'crypto'
 import { EmailService } from '../email/email.service.js';
 import { PermissionsService } from '../permissions/permissions.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { CustomerRegisterDto, type LoginPanel, SellerRegisterDto } from './dto/login.dto.js';
 
 export interface LoginContext {
@@ -28,7 +29,8 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
     private readonly emailService: EmailService,
-    private readonly permissionsService: PermissionsService
+    private readonly permissionsService: PermissionsService,
+    private readonly notifications: NotificationsService
   ) { }
 
   async login(
@@ -134,6 +136,10 @@ export class AuthService {
         passwordHash: await bcrypt.hash(dto.password, 10),
         userType: 'CUSTOMER',
       },
+    })
+    await this.notifications.notify(user.id, 'ACCOUNT', `Welcome to the marketplace, ${user.fullName.split(' ')[0]}!`, {
+      body: 'Save an address and pick your notification settings to get started.',
+      link: '/account/addresses',
     })
     const token = await this.issueTokenPair(user, context)
     return { ...token, userType: user.userType }
