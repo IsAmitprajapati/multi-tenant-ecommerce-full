@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { Headset, RotateCcw, ShieldCheck, Truck } from 'lucide-react'
 import { SITE_NAME } from '@/lib/config'
 
@@ -29,7 +30,10 @@ function FooterLinks() {
     <>
       <span>© {YEAR} Platform, Inc. · {SITE_NAME}</span>
       <nav className='flex gap-5' aria-label='Footer'>
-        <span>About</span><span>Help</span><span>Policies</span><span>Contact</span>
+        <Link href='/about' className='hover:text-brand-600'>About</Link>
+        <Link href='/help' className='hover:text-brand-600'>Help</Link>
+        <Link href='/policies/terms' className='hover:text-brand-600'>Policies</Link>
+        <Link href='/help#contact' className='hover:text-brand-600'>Contact</Link>
       </nav>
     </>
   )

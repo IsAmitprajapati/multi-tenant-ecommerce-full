@@ -10,6 +10,7 @@ import { api, errorMessage } from '@/lib/auth/client'
 import { initials } from '@/lib/format'
 import { FormAlert, Spinner } from '@/components/auth/fields'
 import { StarPicker, Stars } from './Stars'
+import SelectMenu from '@/components/ui/SelectMenu'
 import type { Review, ReviewPage } from '@/lib/types'
 import { refreshProductReviews } from '@/app/actions/reviews'
 
@@ -286,13 +287,11 @@ export default function ReviewsSection({ productId, sellerSlug, slug, initial, m
               ? <>Showing {page.total} {starFilter}-star {page.total === 1 ? 'review' : 'reviews'} · <button type='button' onClick={() => changeStars(null)} className='link cursor-pointer'>Show all</button></>
               : <>{page.total} {page.total === 1 ? 'review' : 'reviews'}</>}
           </span>
-          <label className='flex items-center gap-2 text-xs text-n-600'>
+          <div className='flex items-center gap-2 text-xs text-n-600'>
             Sort by
-            <select value={sort} onChange={(e) => changeSort(e.target.value as Sort)}
-              className='cursor-pointer rounded-lg border-[1.5px] border-n-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-n-900 outline-none focus:border-brand-600'>
-              {SORTS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-            </select>
-          </label>
+            <SelectMenu size='sm' value={sort} onChange={(v) => changeSort(v as Sort)} ariaLabel='Sort reviews'
+              options={SORTS.map((x) => ({ value: x.key, label: x.label }))} />
+          </div>
         </div>
       )}
 

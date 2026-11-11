@@ -1,5 +1,9 @@
-import SessionsList from '@/components/account/SessionsList'
+import { redirect } from 'next/navigation'
 
-export default function AccountSessionsPage() {
-  return <SessionsList />
+// Rendered after the saved session is read (client-side), so skip instant-navigation validation
+export const instant = false
+
+/** Moved into My account › Login & security */
+export default function MovedPage() {
+  redirect('/account/security')
 }

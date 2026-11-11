@@ -78,6 +78,9 @@ export interface CurrentUser {
   profileImage: string | null
   createdAt: string
   passwordUpdatedAt: string
+  gender: 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY' | null
+  /** ISO date */
+  dateOfBirth: string | null
 }
 
 export interface UserSessionRow {
@@ -195,4 +198,33 @@ export interface Cart {
     total: number
     hasProblems: boolean
   }
+}
+
+export interface Address {
+  id: string
+  label: string
+  fullName: string
+  phone: string
+  line1: string
+  locality: string
+  landmark: string | null
+  city: string
+  state: string
+  pincode: string
+  isDefault: boolean
+}
+
+export interface AppNotification {
+  id: string
+  category: 'ORDERS' | 'OFFERS' | 'ACCOUNT'
+  title: string
+  body: string | null
+  link: string | null
+  readAt: string | null
+  createdAt: string
+}
+
+export interface NotificationPrefs {
+  topics: { orderUpdates: boolean; promotions: boolean; priceDrops: boolean; newArrivals: boolean }
+  channels: { push: boolean; email: boolean; sms: boolean }
 }

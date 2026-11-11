@@ -1,5 +1,9 @@
-import PasswordForm from '@/components/account/PasswordForm'
+import { redirect } from 'next/navigation'
 
-export default function AccountPasswordPage() {
-  return <PasswordForm />
+// Rendered after the saved session is read (client-side), so skip instant-navigation validation
+export const instant = false
+
+/** Moved into My account › Login & security */
+export default function MovedPage() {
+  redirect('/account/security')
 }

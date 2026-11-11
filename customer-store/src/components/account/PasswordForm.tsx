@@ -41,8 +41,8 @@ export default function PasswordForm() {
   const clear = (k: keyof Errors) => { setErrors((x) => ({ ...x, [k]: undefined })); setResult(null) }
 
   return (
-    <form onSubmit={save} noValidate className='card max-w-[560px]'>
-      <h1 className='text-base font-bold'>Change password</h1>
+    <form onSubmit={save} noValidate className='card'>
+      <h2 className='text-[15px] font-bold'>Change password</h2>
       <p className='mt-1 mb-5 text-[13px] text-n-600'>
         {user?.passwordUpdatedAt ? `Last changed ${new Date(user.passwordUpdatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}.` : 'Use a password you don’t use anywhere else.'}
       </p>

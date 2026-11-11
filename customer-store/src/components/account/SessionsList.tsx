@@ -32,10 +32,10 @@ export default function SessionsList() {
   const others = rows?.filter((r) => !r.isCurrent).length ?? 0
 
   return (
-    <div className='card max-w-[680px]'>
+    <div className='card'>
       <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
         <div>
-          <h1 className='text-base font-bold'>Signed-in devices</h1>
+          <h2 className='text-[15px] font-bold'>Signed-in devices</h2>
           <p className='mt-1 text-[13px] text-n-600'>Log out of any device you don’t recognise.</p>
         </div>
         {others > 0 && (

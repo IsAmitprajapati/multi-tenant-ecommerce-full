@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { PackageOpen, Search, X } from 'lucide-react'
 import { ProductGrid } from '@/components/home/ProductRail'
+import SelectMenu from '@/components/ui/SelectMenu'
 import type { SellerStore } from '@/lib/types'
 
 const SORTS = [
@@ -63,13 +64,11 @@ export default function SellerProducts({ store }: { store: SellerStore }) {
               </button>
             )}
           </label>
-          <label className='flex items-center gap-2 text-xs text-n-600'>
+          <div className='flex items-center gap-2 text-xs text-n-600'>
             Sort by
-            <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)}
-              className='cursor-pointer rounded-lg border-[1.5px] border-n-200 bg-white px-2.5 py-2 text-xs font-semibold text-n-900 outline-none focus:border-brand-600'>
-              {SORTS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-            </select>
-          </label>
+            <SelectMenu size='sm' value={sort} onChange={(v) => setSort(v as SortKey)} ariaLabel='Sort products'
+              options={SORTS.map((x) => ({ value: x.key, label: x.label }))} />
+          </div>
         </div>
       </div>
 
