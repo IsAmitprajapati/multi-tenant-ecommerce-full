@@ -545,26 +545,28 @@ export class StorefrontService {
   async publicProducts(params: { category?: string; sort?: string; q?: string; filters?: ListingFilters }) {
     const q = params.q?.trim().slice(0, 100);
     if (q) {
-      const rows = await this.prisma.product.findMany({
-        where: {
-          ...visibleProduct,
-          AND: [{
-            OR: [
-              { title: { contains: q, mode: 'insensitive' } },
-              { brand: { name: { contains: q, mode: 'insensitive' } } },
-              { seller: { name: { contains: q, mode: 'insensitive' } } },
-              { category: { name: { contains: q, mode: 'insensitive' } } },
-            ],
-          }],
-        },
-        include: cardInclude,
-        orderBy: { createdAt: 'desc' },
-        take: 60,
-      });
+      // Every word must match somewhere (title, brand, seller or category): "basmati rice" finds "Basmati rice 5kg"
+      const words = q.split(/\s+/).filter(Boolean).slice(0, 6);
+      const where: Prisma.ProductWhereInput = {
+        ...visibleProduct,
+        AND: words.map((w) => ({
+          OR: [
+            { title: { contains: w, mode: 'insensitive' } },
+            { brand: { name: { contains: w, mode: 'insensitive' } } },
+            { seller: { name: { contains: w, mode: 'insensitive' } } },
+            { category: { name: { contains: w, mode: 'insensitive' } } },
+            { category: { parent: { name: { contains: w, mode: 'insensitive' } } } },
+          ],
+        })),
+      };
+      const [rows, total] = await Promise.all([
+        this.prisma.product.findMany({ where, include: cardInclude, orderBy: { createdAt: 'desc' }, take: 60 }),
+        this.prisma.product.count({ where }),
+      ]);
       const cards = rows.map(toCard);
       const sort = (params.sort ?? '').toUpperCase();
       if (sort === 'DEALS') cards.sort((a, b) => b.discountPercent - a.discountPercent);
-      return { category: null, sort: sort || 'LATEST', q, products: cards };
+      return { category: null, sort: sort || 'LATEST', q, total, products: cards };
     }
 
     let category: { id: string; name: string; slug: string; description: string | null; parentId: string | null } | null = null;
