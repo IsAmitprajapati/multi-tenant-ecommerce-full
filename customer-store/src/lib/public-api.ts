@@ -1,6 +1,6 @@
 import { cacheLife, cacheTag } from 'next/cache'
 import { API_URL } from './config'
-import type { HomeData, ProductDetail, ProductListing, PublicCategory, ReviewPage } from './types'
+import type { HomeData, ProductDetail, ProductListing, PublicCategory, ReviewPage, SellerStore } from './types'
 import { filtersQuery, type ListingFilters } from './listing'
 
 /**
@@ -73,4 +73,15 @@ export async function getReviews(sellerSlug: string, slug: string, opts: { pageS
   const res = await fetch(`${API_URL}/public/products/${encodeURIComponent(sellerSlug)}/${encodeURIComponent(slug)}/reviews?${qs}`)
   if (!res.ok) return null
   return res.json() as Promise<ReviewPage>
+}
+
+/** Store page data (null = no such active store) */
+export async function getSellerStore(slug: string): Promise<SellerStore | null> {
+  'use cache'
+  cacheLife('minutes')
+  cacheTag(`seller:${slug}`)
+  const res = await fetch(`${API_URL}/public/sellers/${encodeURIComponent(slug)}`)
+  if (res.status === 404) return null
+  if (!res.ok) throw new Error(`Store ${slug} failed with ${res.status}`)
+  return res.json() as Promise<SellerStore>
 }

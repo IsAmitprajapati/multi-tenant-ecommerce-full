@@ -44,7 +44,7 @@ export default function BuyBox({ product }: { product: ProductDetail }) {
   return (
     <div className='flex flex-col gap-5 lg:sticky lg:top-[92px]'>
       <div className='card'>
-        <Link href={`/products?q=${encodeURIComponent(product.seller.name)}`} className='text-[11px] font-semibold tracking-[0.05em] text-brand-600 uppercase hover:text-brand-500'>
+        <Link href={`/seller/${product.seller.slug}`} className='text-[11px] font-semibold tracking-[0.05em] text-brand-600 uppercase hover:text-brand-500'>
           Sold by {product.seller.name}
         </Link>
         <h1 className='mt-1.5 text-[22px] leading-tight font-bold'>{product.title}</h1>

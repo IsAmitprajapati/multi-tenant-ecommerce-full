@@ -548,6 +548,57 @@ export class StorefrontService {
     };
   }
 
+  /** Public store page: /seller/<slug> — seller profile, stats and every live product */
+  async publicSeller(slug: string) {
+    const seller = await this.prisma.seller.findFirst({
+      where: { slug, status: 'ACTIVE' },
+      select: {
+        id: true, name: true, slug: true, logoUrl: true, brandColor: true, createdAt: true,
+        categories: { select: { category: { select: { name: true, slug: true } } } },
+      },
+    });
+    if (!seller) throw new NotFoundException('Store not found');
+
+    const rows = await this.prisma.product.findMany({
+      where: { ...visibleProduct, sellerId: seller.id },
+      include: { ...cardInclude, category: { select: { slug: true, name: true, parent: { select: { name: true } } } } },
+      orderBy: { createdAt: 'desc' },
+      take: 500,
+    });
+    const products = rows.map((r) => ({ ...toCard(r), categorySlug: r.category.slug, createdAt: r.createdAt }));
+
+    // Store rating = all its product ratings together (weighted by how many each has)
+    const rated = rows.filter((r) => r.ratingCount > 0);
+    const ratingCount = rated.reduce((n, r) => n + r.ratingCount, 0);
+    const ratingSum = rated.reduce((n, r) => n + Number(r.ratingAvg) * r.ratingCount, 0);
+
+    // Filter chips: the sub-categories this store sells in
+    const byCategory = new Map<string, { slug: string; name: string; parent: string | null; count: number }>();
+    for (const r of rows) {
+      const c = byCategory.get(r.category.slug) ?? { slug: r.category.slug, name: r.category.name, parent: r.category.parent?.name ?? null, count: 0 };
+      c.count++;
+      byCategory.set(r.category.slug, c);
+    }
+
+    return {
+      seller: {
+        name: seller.name,
+        slug: seller.slug,
+        logoUrl: seller.logoUrl,
+        brandColor: seller.brandColor,
+        joinedAt: seller.createdAt,
+        categories: seller.categories.map((c) => c.category),
+      },
+      stats: {
+        products: products.length,
+        rating: { average: ratingCount ? Math.round((ratingSum / ratingCount) * 10) / 10 : 0, count: ratingCount },
+        dealsCount: products.filter((p) => p.discountPercent > 0).length,
+      },
+      categories: [...byCategory.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)),
+      products,
+    };
+  }
+
   /** Product listing for "View all" and category pages */
   async publicProducts(params: { category?: string; sort?: string; q?: string; filters?: ListingFilters }) {
     const q = params.q?.trim().slice(0, 100);

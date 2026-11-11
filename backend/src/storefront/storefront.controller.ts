@@ -103,6 +103,11 @@ export class PublicStorefrontController {
   @Get('categories')
   categories() { return this.storefront.publicCategories(); }
 
+  @Get('sellers/:slug')
+  seller(@Param('slug') slug: string) {
+    return this.storefront.publicSeller(slug);
+  }
+
   @Get('products/:sellerSlug/:slug')
   product(@Param('sellerSlug') sellerSlug: string, @Param('slug') slug: string) {
     return this.storefront.publicProduct(sellerSlug, slug);

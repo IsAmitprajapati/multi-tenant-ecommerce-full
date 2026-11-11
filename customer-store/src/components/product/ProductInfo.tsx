@@ -56,10 +56,10 @@ export function SellerCard({ seller }: { seller: ProductDetail['seller'] }) {
         {seller.logoUrl ? <Image src={seller.logoUrl} alt='' fill sizes='48px' className='object-cover' /> : <Store className='size-5' />}
       </span>
       <div className='min-w-0 flex-1'>
-        <div className='truncate text-sm font-bold'>{seller.name}</div>
+        <Link href={`/seller/${seller.slug}`} className='block truncate text-sm font-bold hover:text-brand-700'>{seller.name}</Link>
         {seller.categories.length > 0 && <div className='mt-0.5 truncate text-xs text-n-600'>Sells {seller.categories.join(', ')}</div>}
       </div>
-      <Link href={`/products?q=${encodeURIComponent(seller.name)}`} className='btn-outline shrink-0 px-4 py-2 text-[13px]'>More from this store</Link>
+      <Link href={`/seller/${seller.slug}`} className='btn-outline shrink-0 px-4 py-2 text-[13px]'>Visit store</Link>
     </div>
   )
 }

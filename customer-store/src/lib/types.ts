@@ -144,3 +144,18 @@ export interface ReviewPage {
   total: number
   hasMore: boolean
 }
+
+export interface SellerStore {
+  seller: {
+    name: string
+    slug: string
+    logoUrl: string | null
+    brandColor: string
+    joinedAt: string
+    categories: { name: string; slug: string }[]
+  }
+  stats: { products: number; rating: { average: number; count: number }; dealsCount: number }
+  /** Sub-categories this store sells in (filter chips) */
+  categories: { slug: string; name: string; parent: string | null; count: number }[]
+  products: (ProductCard & { categorySlug: string; createdAt: string })[]
+}
