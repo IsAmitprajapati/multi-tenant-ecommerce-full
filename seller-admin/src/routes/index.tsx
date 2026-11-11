@@ -20,6 +20,7 @@ import ProfileDetailsPage from "@/pages/account/ProfileDetailsPage";
 import ComingSoonPage from "@/pages/ComingSoonPage";
 import StaffPage from "@/pages/staff/StaffPage";
 import ProductsPage from "@/pages/products/ProductsPage";
+import CustomersPage from "@/pages/customers/CustomersPage";
 import ProductFormPage from "@/pages/products/ProductFormPage";
 import ProductViewPage from "@/pages/products/ProductViewPage";
 import StaffFormPage from "@/pages/staff/StaffFormPage";
@@ -33,7 +34,6 @@ const MODULE_PAGES: { path: string; module: PermissionModule; title: string; des
     { path: "collections", module: "SELLER_COLLECTIONS", title: "Collections", description: "Group products into curated collections." },
     { path: "orders", module: "SELLER_ORDERS", title: "Orders", description: "Accept, pack and hand over orders for delivery." },
     { path: "returns", module: "SELLER_RETURNS", title: "Returns & replacements", description: "Review return and replacement requests." },
-    { path: "customers", module: "SELLER_CUSTOMERS", title: "Customers", description: "People who bought from you, and customer segments." },
     { path: "discounts", module: "SELLER_DISCOUNTS", title: "Discounts", description: "Coupons and offers for your listings." },
     { path: "delivery", module: "SELLER_DELIVERY", title: "Delivery", description: "Delivery fees, time slots and your own fleet." },
     { path: "reviews", module: "SELLER_REVIEWS", title: "Reviews", description: "Ratings and replies from customers." },
@@ -75,6 +75,7 @@ export default function Routers() {
                     <Route path="dashboard" element={<DashboardLayouts />}>
                         <Route index element={<PermissionRoute module="SELLER_DASHBOARD"><DashboardPage /></PermissionRoute>} />
                         <Route path="my-account" element={<ProfileDetailsPage />} />
+                        <Route path="customers" element={<PermissionRoute module="SELLER_CUSTOMERS"><CustomersPage /></PermissionRoute>} />
                         <Route path="products" element={<PermissionRoute module="SELLER_PRODUCTS" />}>
                             <Route index element={<ProductsPage />} />
                             <Route path=":productId" element={<ProductViewPage />} />
