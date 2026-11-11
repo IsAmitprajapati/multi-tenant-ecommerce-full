@@ -4,6 +4,7 @@ import { Suspense } from 'react'
 import SearchBox, { SearchBoxFallback } from './SearchBox'
 import UserMenu from './UserMenu'
 import CartButton from './CartButton'
+import WishlistButton from './WishlistButton'
 
 export default function SiteHeader() {
   return (
@@ -15,6 +16,7 @@ export default function SiteHeader() {
           <SearchBox className='hidden max-w-[520px] flex-1 md:block' />
         </Suspense>
         <div className='flex-1' />
+        <WishlistButton />
         <CartButton />
         <UserMenu />
       </div>

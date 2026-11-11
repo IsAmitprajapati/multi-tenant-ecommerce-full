@@ -30,13 +30,13 @@ export interface ListingFilters {
 export type PromoCard = { tag: string | null; title: string; linkUrl: string | null; theme: PromoCardDto['theme'] };
 
 /** Only products a shopper may see: active product, active seller, active (sub-)category */
-const visibleProduct = {
+export const visibleProduct = {
   status: 'ACTIVE',
   seller: { status: 'ACTIVE' },
   category: { isActive: true, OR: [{ parentId: null }, { parent: { isActive: true } }] },
 } satisfies Prisma.ProductWhereInput;
 
-const cardInclude = {
+export const cardInclude = {
   seller: { select: { name: true, slug: true } },
   brand: { select: { name: true } },
   images: { select: { url: true }, orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }], take: 1 },

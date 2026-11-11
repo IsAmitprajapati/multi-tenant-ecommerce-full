@@ -8,6 +8,7 @@ import { inr } from '@/lib/format'
 import { useCart } from '@/lib/cart/CartProvider'
 import { errorMessage } from '@/lib/auth/client'
 import { Spinner } from '@/components/auth/fields'
+import WishlistHeart from '@/components/wishlist/WishlistHeart'
 import { RatingChip } from '@/components/reviews/Stars'
 import { RATING_EVENT } from '@/components/reviews/ReviewsSection'
 import { saveDeliveryLocation, useDeliveryLocation } from '@/components/layout/LocationPicker'
@@ -68,7 +69,10 @@ export default function BuyBox({ product }: { product: ProductDetail }) {
         <Link href={`/seller/${product.seller.slug}`} className='text-[11px] font-semibold tracking-[0.05em] text-brand-600 uppercase hover:text-brand-500'>
           Sold by {product.seller.name}
         </Link>
-        <h1 className='mt-1.5 text-[22px] leading-tight font-bold'>{product.title}</h1>
+        <div className='mt-1.5 flex items-start justify-between gap-3'>
+          <h1 className='text-[22px] leading-tight font-bold'>{product.title}</h1>
+          <WishlistHeart productId={product.id} title={product.title} variant='inline' className='shrink-0' />
+        </div>
         {product.brand && <p className='mt-1 text-[13px] text-n-600'>Brand: <span className='font-medium text-n-900'>{product.brand}</span></p>}
         {/* Rating chip (design) — jumps to the reviews */}
         <a href='#reviews' className='mt-2.5 inline-flex items-center gap-2 text-xs text-n-600 hover:text-brand-700'>

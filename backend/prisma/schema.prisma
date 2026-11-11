@@ -59,6 +59,7 @@ model User {
   inventoryAdjustments InventoryAdjustment[]
   productReviews       ProductReview[]
   cartItems            CartItem[]
+  wishlistItems        WishlistItem[]
 
   @@index([roleId])
   @@index([sellerId])
@@ -428,6 +429,7 @@ model Product {
   homeSections HomeSectionProduct[]
   reviews      ProductReview[]
   cartItems    CartItem[]
+  wishlistedBy WishlistItem[]
 
   @@unique([sellerId, slug])
   @@index([sellerId, status])
@@ -656,4 +658,18 @@ model CartItem {
   @@unique([userId, productId, variantKey])
   @@index([userId])
   @@map("cart_items")
+}
+
+/// Products a signed-in shopper saved (guests keep theirs in the browser until they log in)
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String   @map("product_id")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, productId])
+  @@index([userId, createdAt])
+  @@map("wishlist_items")
 }

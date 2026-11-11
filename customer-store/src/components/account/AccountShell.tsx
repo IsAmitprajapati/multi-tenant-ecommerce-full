@@ -3,13 +3,14 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { KeyRound, LogOut, MonitorSmartphone, UserRound } from 'lucide-react'
+import { Heart, KeyRound, LogOut, MonitorSmartphone, UserRound } from 'lucide-react'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { initials } from '@/lib/format'
 import { Spinner } from '@/components/auth/fields'
 
 const NAV = [
   { href: '/account', label: 'Profile', Icon: UserRound },
+  { href: '/wishlist', label: 'Wishlist', Icon: Heart },
   { href: '/account/password', label: 'Password', Icon: KeyRound },
   { href: '/account/sessions', label: 'Signed-in devices', Icon: MonitorSmartphone },
 ]

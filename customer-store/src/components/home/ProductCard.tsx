@@ -3,12 +3,17 @@ import Link from 'next/link'
 import { ImageOff } from 'lucide-react'
 import { inr, productHref } from '@/lib/format'
 import { RatingChip } from '@/components/reviews/Stars'
+import WishlistHeart from '@/components/wishlist/WishlistHeart'
 import type { ProductCard as Card } from '@/lib/types'
 
-/** Product tile — links to the product page */
-export default function ProductCard({ p, className = '' }: { p: Card; className?: string }) {
+/**
+ * Product tile — links to the product page. The wishlist heart sits beside the link
+ * (a button can't be nested inside a link), positioned over the photo.
+ */
+export default function ProductCard({ p, className = '', footer }: { p: Card; className?: string; footer?: React.ReactNode }) {
   return (
-    <Link href={productHref(p)} className={`group flex flex-col overflow-hidden rounded-xl border border-n-200 bg-white transition-shadow hover:shadow-[0_6px_20px_-8px_rgba(12,31,22,.25)] ${className}`}>
+    <div className={`group relative flex flex-col overflow-hidden rounded-xl border border-n-200 bg-white transition-shadow hover:shadow-[0_6px_20px_-8px_rgba(12,31,22,.25)] ${className}`}>
+    <Link href={productHref(p)} className='flex flex-1 flex-col'>
       <div className='relative aspect-[19/13] bg-n-100'>
         {p.imageUrl
           ? <Image src={p.imageUrl} alt={p.title} fill sizes='(min-width: 1024px) 220px, 45vw' className={`object-cover ${p.inStock ? '' : 'opacity-60 grayscale'}`} />
@@ -36,5 +41,8 @@ export default function ProductCard({ p, className = '' }: { p: Card; className?
         </div>
       </div>
     </Link>
+    {footer}
+    <WishlistHeart productId={p.id} title={p.title} className='absolute top-2 right-2' />
+    </div>
   )
 }
