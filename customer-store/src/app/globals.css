@@ -2,6 +2,7 @@
 
 /* Design tokens — from the Claude Design canvas (Main.dc.html) */
 @theme {
+  --animate-drawer-in: drawer-in 0.2s ease-out;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
   --color-brand-900: #06251a;
@@ -79,4 +80,14 @@
   &::-webkit-scrollbar {
   display: none;
   }
+}
+
+@keyframes drawer-in {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+/* Keep the page still while a modal (menu drawer, dialogs) is open */
+html:has(dialog[open]) {
+  overflow: hidden;
 }

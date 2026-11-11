@@ -5,11 +5,13 @@ import SearchBox, { SearchBoxFallback } from './SearchBox'
 import UserMenu from './UserMenu'
 import CartButton from './CartButton'
 import WishlistButton from './WishlistButton'
+import MobileMenu from './MobileMenu'
 
 export default function SiteHeader() {
   return (
     <header className='sticky top-0 z-30 border-b border-n-200 bg-white'>
       <div className='mx-auto flex h-16 max-w-[1440px] items-center gap-3 px-4 sm:h-[72px] sm:gap-5 sm:px-8'>
+        <MobileMenu />
         <Logo />
         <div className='hidden md:block'><LocationPicker /></div>
         <Suspense fallback={<SearchBoxFallback className='hidden max-w-[520px] flex-1 md:block' />}>
