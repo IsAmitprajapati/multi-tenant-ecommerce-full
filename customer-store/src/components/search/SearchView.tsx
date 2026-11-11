@@ -7,6 +7,7 @@ import { History, SearchX, TrendingUp, X } from 'lucide-react'
 import { API_URL } from '@/lib/config'
 import { addRecentSearch, clearRecentSearches, removeRecentSearch, useRecentSearches } from '@/lib/recent-searches'
 import ProductCard from '@/components/home/ProductCard'
+import ListingSkeleton from '@/components/home/ListingSkeleton'
 import { GRID_COLS, GRID_GAP } from '@/components/home/ProductRail'
 import { setSearchQuery } from '@/components/layout/SearchBox'
 import { MIN_SEARCH_LENGTH, SEARCH_CACHE_SIZE, searchKey } from '@/lib/search'
@@ -15,16 +16,7 @@ import type { ProductCard as Card, ProductListing } from '@/lib/types'
 type Result = { total: number; products: Card[] }
 
 function ResultSkeleton() {
-  return (
-    <div className={`grid ${GRID_GAP} ${GRID_COLS}`} aria-busy='true' aria-label='Searching'>
-      {Array.from({ length: 10 }).map((_, i) => (
-        <div key={i} className='overflow-hidden rounded-xl border border-n-200 bg-white'>
-          <div className='aspect-[19/13] animate-pulse bg-n-100' />
-          <div className='space-y-2 p-3'><div className='h-2.5 w-1/2 animate-pulse rounded bg-n-100' /><div className='h-3 w-4/5 animate-pulse rounded bg-n-100' /></div>
-        </div>
-      ))}
-    </div>
-  )
+  return <ListingSkeleton label='Searching' />
 }
 
 /** Search page (Search design): recent + trending before typing, live results while typing */
