@@ -41,7 +41,7 @@ function CategoryPageSkeleton() {
           <div className='h-7 w-56 animate-pulse rounded bg-n-200' />
           <div className='hidden gap-1.5 sm:flex'>{Array.from({ length: 3 }).map((_, i) => <div key={i} className='h-7 w-20 animate-pulse rounded-full bg-n-200' />)}</div>
         </div>
-        <div className='mt-5'><ListingSkeleton /></div>
+        <div className='mt-5'><ListingSkeleton withSidebar /></div>
       </div>
     </div>
   )

@@ -216,9 +216,9 @@ export default function CategoryListing({ top, initialKey, initialListing }: {
           {error
             ? <p className='card text-center text-sm text-[#B23139]'>{error}</p>
             : !products
-              ? <ListingSkeleton />
+              ? <ListingSkeleton withSidebar />
               : products.length
-                ? <ProductGrid products={products} />
+                ? <ProductGrid products={products} withSidebar />
                 : nFilters > 0
                   ? (
                     <div className='mt-10 text-center'>

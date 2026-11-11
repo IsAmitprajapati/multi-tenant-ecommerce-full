@@ -7,6 +7,7 @@ import { History, SearchX, TrendingUp, X } from 'lucide-react'
 import { API_URL } from '@/lib/config'
 import { addRecentSearch, clearRecentSearches, removeRecentSearch, useRecentSearches } from '@/lib/recent-searches'
 import ProductCard from '@/components/home/ProductCard'
+import { GRID_COLS, GRID_GAP } from '@/components/home/ProductRail'
 import { setSearchQuery } from '@/components/layout/SearchBox'
 import { MIN_SEARCH_LENGTH, SEARCH_CACHE_SIZE, searchKey } from '@/lib/search'
 import type { ProductCard as Card, ProductListing } from '@/lib/types'
@@ -15,7 +16,7 @@ type Result = { total: number; products: Card[] }
 
 function ResultSkeleton() {
   return (
-    <div className='grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5' aria-busy='true' aria-label='Searching'>
+    <div className={`grid ${GRID_GAP} ${GRID_COLS}`} aria-busy='true' aria-label='Searching'>
       {Array.from({ length: 10 }).map((_, i) => (
         <div key={i} className='overflow-hidden rounded-xl border border-n-200 bg-white'>
           <div className='aspect-[19/13] animate-pulse bg-n-100' />
@@ -147,7 +148,7 @@ export default function SearchView({ trending }: { trending: { title: string }[]
             {current.total} {current.total === 1 ? 'result' : 'results'} for “{q}”
             {current.total > current.products.length && <> · showing the first {current.products.length}</>}
           </p>
-          <div className='grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5'>
+          <div className={`grid ${GRID_GAP} ${GRID_COLS}`}>
             {current.products.map((p) => (
               <div key={p.id} onClickCapture={() => addRecentSearch(q)}>
                 <ProductCard p={p} />

@@ -1,6 +1,8 @@
-export default function ListingSkeleton() {
+import { GRID_COLS, GRID_COLS_WITH_SIDEBAR, GRID_GAP } from './ProductRail'
+
+export default function ListingSkeleton({ withSidebar = false }: { withSidebar?: boolean }) {
   return (
-    <div className='grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5' aria-busy='true' aria-label='Loading products'>
+    <div className={`grid ${GRID_GAP} ${withSidebar ? GRID_COLS_WITH_SIDEBAR : GRID_COLS}`} aria-busy='true' aria-label='Loading products'>
       {Array.from({ length: 10 }).map((_, i) => (
         <div key={i} className='overflow-hidden rounded-xl border border-n-200 bg-white'>
           <div className='aspect-[19/13] animate-pulse bg-n-100' />

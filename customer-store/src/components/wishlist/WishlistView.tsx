@@ -9,6 +9,7 @@ import { useWishlist } from '@/lib/wishlist/WishlistProvider'
 import { useCart } from '@/lib/cart/CartProvider'
 import { productHref } from '@/lib/format'
 import ProductCard from '@/components/home/ProductCard'
+import { GRID_COLS, GRID_GAP } from '@/components/home/ProductRail'
 import ListingSkeleton from '@/components/home/ListingSkeleton'
 import { FormAlert, Spinner } from '@/components/auth/fields'
 import type { ProductCard as Card } from '@/lib/types'
@@ -115,7 +116,7 @@ export default function WishlistView() {
             <Link href='/' className='btn-primary mt-5 px-6 py-2.5 text-[13px]'>Start shopping</Link>
           </div>
         ) : (
-          <div className='grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5'>
+          <div className={`grid ${GRID_GAP} ${GRID_COLS}`}>
             {items.map((p) => (
               <ProductCard key={p.id} p={p} footer={<CardAction p={p} onAdded={() => setNotice(null)} />} />
             ))}
