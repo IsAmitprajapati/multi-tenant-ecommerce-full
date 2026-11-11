@@ -18,6 +18,7 @@ import { CartModule } from './cart/cart.module.js';
 import { WishlistModule } from './wishlist/wishlist.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { AccountModule } from './account/account.module.js';
+import { CustomersModule } from './customers/customers.module.js';
 
 @Module({
 
@@ -41,6 +42,7 @@ import { AccountModule } from './account/account.module.js';
     WishlistModule,
     NotificationsModule,
     AccountModule,
+    CustomersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

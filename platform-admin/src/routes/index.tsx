@@ -18,6 +18,7 @@ import CategoriesPage from "@/pages/catalog/CategoriesPage";
 import CategoryDetailPage from "@/pages/catalog/CategoryDetailPage";
 import CategoryFormPage from "@/pages/catalog/CategoryFormPage";
 import HomePageBuilder from '@/pages/storefront/HomePageBuilder'
+import CustomersPage from '@/pages/customers/CustomersPage'
 import CreateUserPage from "@/pages/user-permissions/CreateUser";
 import RolesPage from "@/pages/user-permissions/RolesPage";
 import RoleFormPage from "@/pages/user-permissions/RoleFormPage";
@@ -68,6 +69,11 @@ export default function Routers() {
                     <Route path="storefront" element={<PermissionRoute module="STOREFRONT" level="VIEW" />}>
                         <Route index element={<Navigate to="home" replace />} />
                         <Route path="home" element={<HomePageBuilder />} />
+                    </Route>
+
+                    {/***Customers (every shopper account) */}
+                    <Route path="customers" element={<PermissionRoute module="CUSTOMERS" level="VIEW" />}>
+                        <Route index element={<CustomersPage />} />
                     </Route>
 
                     {/***Users & Permissions */}
