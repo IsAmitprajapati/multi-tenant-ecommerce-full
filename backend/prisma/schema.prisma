@@ -334,32 +334,48 @@ enum InventoryAdjustmentReason {
 
 /// Platform product taxonomy (read-only for sellers)
 model ProductCategory {
-  id                    String            @id @default(cuid())
+  id                    String              @id @default(cuid())
   name                  String
-  slug                  String            @unique
-  parentId              String?           @map("parent_id")
-  parent                ProductCategory?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
-  children              ProductCategory[] @relation("CategoryTree")
+  slug                  String              @unique
+  parentId              String?             @map("parent_id")
+  parent                ProductCategory?    @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children              ProductCategory[]   @relation("CategoryTree")
   description           String?
   /// Default commission % for sellers in this (top-level) category
-  defaultCommissionRate Decimal?          @map("default_commission_rate") @db.Decimal(5, 2)
-  requiresFssai         Boolean           @default(false) @map("requires_fssai")
+  defaultCommissionRate Decimal?            @map("default_commission_rate") @db.Decimal(5, 2)
+  requiresFssai         Boolean             @default(false) @map("requires_fssai")
   /// Small icon for home tiles, menus and the sidebar (ImageKit). Optional — a built-in icon is shown without it.
-  iconFileId            String?           @map("icon_file_id")
-  iconUrl               String?           @map("icon_url")
+  iconFileId            String?             @map("icon_file_id")
+  iconUrl               String?             @map("icon_url")
   /// Picture for the category page cards (ImageKit). Optional.
-  imageFileId           String?           @map("image_file_id")
-  imageUrl              String?           @map("image_url")
-  isActive              Boolean           @default(true) @map("is_active")
-  sortOrder             Int               @default(0) @map("sort_order")
+  imageFileId           String?             @map("image_file_id")
+  imageUrl              String?             @map("image_url")
+  isActive              Boolean             @default(true) @map("is_active")
+  sortOrder             Int                 @default(0) @map("sort_order")
   products              Product[]
   sellerCategories      SellerCategory[]
-  homeSections          HomeSection[]     @relation("HomeSectionCategory")
-  createdAt             DateTime          @default(now()) @map("created_at")
-  updatedAt             DateTime          @default(now()) @updatedAt @map("updated_at")
+  homeSections          HomeSection[]       @relation("HomeSectionCategory")
+  attributes            CategoryAttribute[]
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @default(now()) @updatedAt @map("updated_at")
 
   @@index([parentId])
   @@map("product_categories")
+}
+
+/// Global catalog › Attributes — e.g. Size: XS, S, M… for Fashion (categoryId null = all categories)
+model CategoryAttribute {
+  id         String           @id @default(cuid())
+  name       String
+  values     String[]         @default([])
+  categoryId String?          @map("category_id")
+  category   ProductCategory? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  isActive   Boolean          @default(true) @map("is_active")
+  createdAt  DateTime         @default(now()) @map("created_at")
+  updatedAt  DateTime         @updatedAt @map("updated_at")
+
+  @@index([categoryId])
+  @@map("category_attributes")
 }
 
 /// GST tax classes by HSN code
@@ -381,6 +397,8 @@ model Brand {
   name      String
   sellerId  String    @map("seller_id")
   seller    Seller    @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  /// Platform admin can deactivate a brand (sellers can't pick it for new products)
+  isActive  Boolean   @default(true) @map("is_active")
   createdAt DateTime  @default(now()) @map("created_at")
   products  Product[]
 
@@ -427,6 +445,13 @@ model Product {
   /// Kept in step with published reviews (for cards, sorting and the rating filter)
   ratingAvg         Decimal       @default(0) @map("rating_avg") @db.Decimal(3, 2)
   ratingCount       Int           @default(0) @map("rating_count")
+
+  /// Global catalog moderation: a flag is a warning to the seller; a block takes the listing down
+  /// (status forced INACTIVE) and only the platform can lift it.
+  flaggedAt        DateTime? @map("flagged_at")
+  flagReason       String?   @map("flag_reason")
+  adminBlockedAt   DateTime? @map("admin_blocked_at")
+  adminBlockReason String?   @map("admin_block_reason")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

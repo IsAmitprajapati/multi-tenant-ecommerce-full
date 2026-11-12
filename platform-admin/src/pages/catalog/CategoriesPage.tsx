@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { createColumnHelper } from '@tanstack/react-table'
 import { EyeIcon, FolderPlusIcon, LayoutGridIcon, MoreHorizontalIcon, PencilIcon, PlusIcon, PowerIcon, SearchIcon, Trash2Icon, ImageIcon } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
+import CatalogTabs from './_component/CatalogTabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -143,9 +144,7 @@ export default function CategoriesPage() {
                 description={loading ? 'Loading…' : `${items.length} categories · ${subCount} sub-categories — sellers choose categories at onboarding, and file products under sub-categories`}
                 actions={canEdit && <Button className='h-10 cursor-pointer' onClick={() => navigate(`${CATALOG_PATH}/new`)}><PlusIcon /> Add category</Button>}
             >
-                <nav className='flex gap-6 border-b' aria-label='Global catalog sections'>
-                    <span aria-current='page' className='-mb-px border-b-2 border-primary px-1 pb-2.5 text-sm font-semibold text-primary'>Categories</span>
-                </nav>
+                <CatalogTabs />
             </PageHeader>
 
             {!loading && items.length === 0 ? (

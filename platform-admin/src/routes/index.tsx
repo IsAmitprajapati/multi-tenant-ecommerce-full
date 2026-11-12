@@ -17,6 +17,10 @@ import SellerEditPage from "@/pages/sellers/SellerEditPage";
 import CategoriesPage from "@/pages/catalog/CategoriesPage";
 import CategoryDetailPage from "@/pages/catalog/CategoryDetailPage";
 import CategoryFormPage from "@/pages/catalog/CategoryFormPage";
+import AttributesPage from "@/pages/catalog/AttributesPage";
+import BrandsPage from "@/pages/catalog/BrandsPage";
+import TaxClassesPage from "@/pages/catalog/TaxClassesPage";
+import PlatformProductsPage from "@/pages/catalog/PlatformProductsPage";
 import HomePageBuilder from '@/pages/storefront/HomePageBuilder'
 import CustomersPage from '@/pages/customers/CustomersPage'
 import CreateUserPage from "@/pages/user-permissions/CreateUser";
@@ -59,6 +63,10 @@ export default function Routers() {
                         <Route index element={<Navigate to="categories" replace />} />
                         <Route path="categories" element={<CategoriesPage />} />
                         <Route path="categories/:categoryId" element={<CategoryDetailPage />} />
+                        <Route path="attributes" element={<AttributesPage />} />
+                        <Route path="brands" element={<BrandsPage />} />
+                        <Route path="tax-classes" element={<TaxClassesPage />} />
+                        <Route path="products" element={<PlatformProductsPage />} />
                         <Route element={<PermissionRoute module="GLOBAL_CATALOG" level="EDIT" />}>
                             <Route path="categories/new" element={<CategoryFormPage />} />
                             <Route path="categories/:categoryId/edit" element={<CategoryFormPage />} />

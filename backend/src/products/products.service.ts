@@ -57,6 +57,16 @@ type DetailRow = Prisma.ProductGetPayload<{ include: typeof detailInclude }>;
 
 const num = (d: Prisma.Decimal | null | undefined) => (d == null ? null : Number(d));
 
+/** Platform moderation shown to the seller (Global catalog › Products) */
+const moderationOf = (p: { flaggedAt: Date | null; flagReason: string | null; adminBlockedAt: Date | null; adminBlockReason: string | null }) => ({
+  flagged: !!p.flaggedAt,
+  flagReason: p.flagReason,
+  flaggedAt: p.flaggedAt,
+  blocked: !!p.adminBlockedAt,
+  blockReason: p.adminBlockReason,
+  blockedAt: p.adminBlockedAt,
+});
+
 const slugify = (v: string) =>
   v.toLowerCase().normalize('NFKD').replace(/&/g, 'and').replace(/[^\w\s-]/g, '').trim()
     .replace(/[\s_]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 110) || 'product';
@@ -113,6 +123,7 @@ export class ProductsService {
       slug: p.slug,
       sku: p.sku,
       status: p.status,
+      moderation: moderationOf(p),
       imageUrl: p.images[0]?.url ?? null,
       category: { id: p.category.id, name: p.category.name, parentName: p.category.parent?.name ?? null },
       price: Math.min(...prices),
@@ -161,7 +172,7 @@ export class ProductsService {
         },
       }),
       this.prisma.taxClass.findMany({ where: { isActive: true }, orderBy: [{ gstRatePercent: 'asc' }, { hsnCode: 'asc' }] }),
-      this.prisma.brand.findMany({ where: { sellerId: seller.id }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
+      this.prisma.brand.findMany({ where: { sellerId: seller.id, isActive: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
     ]);
     const categories = tops;
     return {
@@ -285,8 +296,9 @@ export class ProductsService {
       where: { sellerId_name: { sellerId, name } },
       update: {},
       create: { sellerId, name },
-      select: { id: true },
+      select: { id: true, isActive: true },
     });
+    if (!brand.isActive) throw new BadRequestException(`The brand “${name}” was deactivated by the platform team`);
     return brand.id;
   }
 
@@ -368,6 +380,7 @@ export class ProductsService {
     const seller = await this.sellerOf(actorId);
     const existing = await this.findOwned(seller.id, id);
     await this.checkRefs(seller, dto, id, existing.categoryId);
+    if (dto.status === 'ACTIVE') this.assertNotBlocked(existing);
 
     for (const v of dto.variants ?? []) {
       if (v.id && !existing.variants.some((ev) => ev.id === v.id)) throw new BadRequestException('Unknown variant');
@@ -429,9 +442,17 @@ export class ProductsService {
     return { success: true, message: 'Product saved', data: this.serializeDetail(await this.findOwned(seller.id, id)) };
   }
 
+  /** A listing the platform took down stays hidden until the platform lifts the block */
+  private assertNotBlocked(p: { adminBlockedAt: Date | null; adminBlockReason: string | null }) {
+    if (p.adminBlockedAt) {
+      throw new ForbiddenException(`This listing was taken down by the platform team${p.adminBlockReason ? `: ${p.adminBlockReason}` : ''}. Contact support to have it reviewed.`);
+    }
+  }
+
   async setStatus(actorId: string, id: string, status: ProductStatus) {
     const seller = await this.sellerOf(actorId);
-    await this.findOwned(seller.id, id);
+    const product = await this.findOwned(seller.id, id);
+    if (status === 'ACTIVE') this.assertNotBlocked(product);
     await this.prisma.product.update({ where: { id }, data: { status } });
     return {
       success: true,
