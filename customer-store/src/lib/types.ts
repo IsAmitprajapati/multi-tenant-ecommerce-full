@@ -123,6 +123,8 @@ export interface ProductDetail {
   lowStock: boolean
   variants: ProductVariantOption[]
   specs: { sku: string | null; weightKg: number | null; packageType: string; requiresColdChain: boolean }
+  /** Specifications the seller picked from the platform's attributes, e.g. RAM: 8GB */
+  attributes: { name: string; value: string }[]
   delivery: { scope: 'SELLER_PINCODE_ONLY' | 'SPECIFIC_PINCODES' | 'PAN_INDIA'; pincodes: string[] }
   related: ProductCard[]
 }

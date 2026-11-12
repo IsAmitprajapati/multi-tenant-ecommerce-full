@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { PencilIcon, PlusIcon, PowerIcon, SearchIcon, SlidersHorizontalIcon, XIcon } from 'lucide-react'
+import { LayersIcon, ListChecksIcon, PencilIcon, PlusIcon, PowerIcon, SearchIcon, SlidersHorizontalIcon, XIcon } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 import ListPager from '@/components/ListPager'
 import { DEFAULT_PAGE_SIZE } from '@/lib/paging'
@@ -169,6 +169,25 @@ export default function AttributesPage() {
             >
                 <CatalogTabs />
             </PageHeader>
+
+            {/* How sellers use attributes */}
+            <div className='mb-5 grid gap-3 md:grid-cols-2'>
+                <div className='flex gap-3 rounded-lg border bg-white p-4'>
+                    <span className='flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary'><ListChecksIcon className='size-4' /></span>
+                    <div>
+                        <p className='text-sm font-semibold'>Specifications</p>
+                        <p className='mt-0.5 text-xs text-muted-foreground'>On the product form (Details tab) a seller picks one value per attribute — e.g. Warranty: 1 year. It shows in the Specifications table on the product page.</p>
+                    </div>
+                </div>
+                <div className='flex gap-3 rounded-lg border bg-white p-4'>
+                    <span className='flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary'><LayersIcon className='size-4' /></span>
+                    <div>
+                        <p className='text-sm font-semibold'>Variants</p>
+                        <p className='mt-0.5 text-xs text-muted-foreground'>“From attributes” on the Pricing tab: pick values of one or two attributes (RAM 6GB, 8GB × Storage 128GB, 256GB) and a variant is created for each combination.</p>
+                    </div>
+                </div>
+            </div>
+            <p className='-mt-2 mb-4 text-xs text-muted-foreground'>Sellers only see active attributes for their own categories, plus those set to “All categories”. Deactivating hides it from the form; values already saved on products stay.</p>
 
             <div className='relative w-full md:max-w-xs'>
                 <SearchIcon className='absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground' />

@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { isAxiosError } from 'axios'
 import {
-    AlertCircleIcon, CheckIcon, CircleCheckIcon, CircleXIcon, ImageIcon, InfoIcon, Loader2Icon, PackagePlusIcon, PlusIcon, Trash2Icon, TruckIcon, XIcon,
+    AlertCircleIcon, CheckIcon, ListChecksIcon, SparklesIcon, CircleCheckIcon, CircleXIcon, ImageIcon, InfoIcon, Loader2Icon, PackagePlusIcon, PlusIcon, Trash2Icon, TruckIcon, XIcon,
 } from 'lucide-react'
 import PageHeader, { scrollPageToTop } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -23,6 +23,7 @@ import {
 import { inr, ProductImagesUploader, type GalleryImage } from './_component/product-ui'
 import StockAdjustDialog from './_component/StockAdjustDialog'
 import StockLog from './_component/StockLog'
+import { SpecificationsPicker, VariantGeneratorDialog } from './_component/ProductAttributes'
 import { ProductFormSkeleton, type ProductPreview } from './_component/ProductSkeletons'
 
 const TABS = [
@@ -44,13 +45,15 @@ interface Form {
     sku: string; inventoryQty: string; lowStockThreshold: string
     weightKg: string; packageType: PackageType; requiresColdChain: boolean; deliveryScope: DeliveryScope; deliveryPincodes: string[]
     images: GalleryImage[]; variants: VariantRow[]
+    /** Specifications by attribute name, e.g. { RAM: '8GB' } */
+    specs: Record<string, string>
 }
 
 const EMPTY: Form = {
     title: '', description: '', categoryId: '', brandName: '', slug: '', seoTitle: '', seoDescription: '', status: 'ACTIVE',
     sellingPrice: '', compareAtPrice: '', costPerItem: '', taxClassId: '', sku: '', inventoryQty: '0', lowStockThreshold: '5',
     weightKg: '', packageType: 'STANDARD_BAG', requiresColdChain: false, deliveryScope: 'SELLER_PINCODE_ONLY', deliveryPincodes: [],
-    images: [], variants: [],
+    images: [], variants: [], specs: {},
 }
 
 /** Which tab each field lives on — validation jumps to the first tab with an error */
@@ -67,6 +70,12 @@ const slugify = (v: string) => v.toLowerCase().normalize('NFKD').replace(/&/g, '
     .replace(/[\s_]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 110)
 const money = (v: string) => (v.trim() === '' ? null : Number(v))
 const newKey = () => Math.random().toString(36).slice(2)
+const NO_BRAND = '__none__'
+const NEW_BRAND = '__new__'
+/** The brand used last is preselected for the next new product (per-browser convenience) */
+const LAST_BRAND_KEY = 'seller-admin:last-brand'
+const readLastBrand = () => { try { return localStorage.getItem(LAST_BRAND_KEY) ?? '' } catch { return '' } }
+const writeLastBrand = (name: string) => { try { if (name) localStorage.setItem(LAST_BRAND_KEY, name); else localStorage.removeItem(LAST_BRAND_KEY) } catch { /* storage blocked */ } }
 
 function Field({ label, htmlFor, error, hint, className, children }: {
     label: React.ReactNode; htmlFor?: string; error?: string; hint?: React.ReactNode; className?: string; children: React.ReactNode
@@ -109,6 +118,9 @@ export default function ProductFormPage() {
     const [adjustOpen, setAdjustOpen] = useState(false)
     /** Top-level category chosen first; sub-categories are filtered by it */
     const [parentCategoryId, setParentCategoryId] = useState('')
+    /** Typing a brand that isn't in the list yet */
+    const [newBrand, setNewBrand] = useState(false)
+    const [generatorOpen, setGeneratorOpen] = useState(false)
 
     useEffect(() => {
         Promise.all([productsApi.meta(), productId ? productsApi.get(productId) : Promise.resolve(null)])
@@ -117,8 +129,12 @@ export default function ProductFormPage() {
                 if (p) {
                     setProduct(p.data); setForm(toForm(p.data)); setSlugTouched(true)
                     setParentCategoryId(p.data.category.parent?.id ?? '')
+                    if (p.data.brand && !m.data.brands.some(b => b.name === p.data!.brand!.name)) setNewBrand(true)
                 } else {
-                    setForm(f => ({ ...f, taxClassId: m.data.taxClasses.find(t => t.hsnCode === '9999')?.id ?? m.data.taxClasses[0]?.id ?? '' }))
+                    // Brand: the one used last, or the only one the seller has
+                    const last = readLastBrand()
+                    const brandName = m.data.brands.find(b => b.name === last)?.name ?? (m.data.brands.length === 1 ? m.data.brands[0].name : '')
+                    setForm(f => ({ ...f, brandName, taxClassId: m.data.taxClasses.find(t => t.hsnCode === '9999')?.id ?? m.data.taxClasses[0]?.id ?? '' }))
                     // A seller with a single category doesn't need to pick it
                     if (m.data.categories.length === 1) setParentCategoryId(m.data.categories[0].id)
                 }
@@ -148,6 +164,7 @@ export default function ProductFormPage() {
     const setVariant = (key: string, patch: Partial<VariantRow>) => { setForm(f => ({ ...f, variants: f.variants.map(v => (v.key === key ? { ...v, ...patch } : v)) })); setErrors(e => ({ ...e, variants: '' })) }
 
     const category = useMemo(() => meta?.categories.find(c => c.id === parentCategoryId), [meta, parentCategoryId])
+    const attributes = useMemo(() => (meta && parentCategoryId ? meta.attributes.filter(a => a.categoryId === parentCategoryId || a.categoryId === null) : []), [meta, parentCategoryId])
     const taxClass = meta?.taxClasses.find(t => t.id === form.taxClassId)
     const hasVariants = form.variants.length > 0
     const price = money(form.sellingPrice) ?? 0
@@ -160,6 +177,7 @@ export default function ProductFormPage() {
     const validate = () => {
         const e: Record<string, string> = {}
         if (form.title.trim().length < 2) e.title = 'Enter a product name'
+        if (newBrand && !form.brandName.trim()) e.brandName = 'Type the new brand name, or pick one from the list'
         if (!parentCategoryId) e.categoryId = 'Choose a category'
         else if (!form.categoryId) e.categoryId = 'Choose a sub-category'
         if (!(price > 0)) e.sellingPrice = 'Enter a selling price'
@@ -189,6 +207,7 @@ export default function ProductFormPage() {
         description: form.description.trim(),
         categoryId: form.categoryId,
         brandName: form.brandName.trim(),
+        specs: Object.entries(form.specs).filter(([, v]) => v).map(([name, value]) => ({ name, value })),
         ...(form.slug && { slug: form.slug }),
         seoTitle: form.seoTitle.trim(),
         seoDescription: form.seoDescription.trim(),
@@ -222,6 +241,7 @@ export default function ProductFormPage() {
         try {
             const res = product ? await productsApi.update(product.id, payload()) : await productsApi.create(payload())
             toast.success(res.message ?? 'Product saved')
+            writeLastBrand(form.brandName.trim())
             // a new brand may have been created — refresh the cached options in the background
             if (form.brandName.trim() && !meta?.brands.some(b => b.name === form.brandName.trim())) productsApi.meta(true).catch(() => undefined)
             navigate(`/dashboard/products/${res.data.id}`)
@@ -325,11 +345,43 @@ export default function ProductFormPage() {
                                 </SelectContent>
                             </Select>
                         </Field>
-                        <Field label='Brand' htmlFor='brand' className='sm:col-span-2' hint='Leave empty for “No brand”. New brand names are saved for next time.'>
-                            <Input id='brand' className='h-10' list='brand-options' placeholder='No brand' maxLength={80} value={form.brandName} onChange={e => set('brandName', e.target.value)} />
-                            <datalist id='brand-options'>{meta.brands.map(b => <option key={b.id} value={b.name} />)}</datalist>
+                        <Field label='Brand' htmlFor='brand' className='sm:col-span-2' error={errors.brandName}
+                            hint={newBrand ? 'Saved to your brands — next time just pick it from the list.' : meta.brands.length ? 'Your last-used brand is picked for you on new products.' : 'Add your brand once — after that you just pick it.'}>
+                            {newBrand ? (
+                                <div className='flex gap-2'>
+                                    <Input id='brand' autoFocus className='h-10' placeholder='New brand name' maxLength={80} value={form.brandName} aria-invalid={!!errors.brandName}
+                                        onChange={e => set('brandName', e.target.value)} />
+                                    {meta.brands.length > 0 && (
+                                        <Button type='button' variant='outline' className='h-10 cursor-pointer' onClick={() => {
+                                            setNewBrand(false)
+                                            if (!meta.brands.some(b => b.name === form.brandName.trim())) set('brandName', '')
+                                        }}>Pick existing</Button>
+                                    )}
+                                </div>
+                            ) : (
+                                <Select value={form.brandName || NO_BRAND} onValueChange={v => {
+                                    if (v === NEW_BRAND) { setNewBrand(true); set('brandName', '') }
+                                    else set('brandName', v === NO_BRAND ? '' : v)
+                                }}>
+                                    <SelectTrigger id='brand' className='h-10! w-full cursor-pointer'><SelectValue /></SelectTrigger>
+                                    <SelectContent position='popper' className='max-h-80'>
+                                        <SelectItem value={NO_BRAND} className='cursor-pointer text-muted-foreground'>No brand</SelectItem>
+                                        {meta.brands.map(b => <SelectItem key={b.id} value={b.name} className='cursor-pointer'>{b.name}</SelectItem>)}
+                                        <SelectItem value={NEW_BRAND} className='cursor-pointer font-semibold text-primary'><PlusIcon className='text-primary' /> Add a new brand</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            )}
                         </Field>
                     </CardContent>
+                </Card>
+            )}
+            {tab === 'details' && (
+                <Card className='mt-6'>
+                    <CardHeader className='border-b'>
+                        <CardTitle className='flex items-center gap-2 text-base font-semibold'><ListChecksIcon className='size-4 text-primary' /> Specifications</CardTitle>
+                        <CardDescription>Optional. Shown in the Specifications table on your product page — e.g. RAM, Warranty, Fabric. The list comes from the platform for your category.</CardDescription>
+                    </CardHeader>
+                    <CardContent><SpecificationsPicker attributes={attributes} specs={form.specs} onChange={v => set('specs', v)} /></CardContent>
                 </Card>
             )}
 
@@ -374,17 +426,25 @@ export default function ProductFormPage() {
                                         <CardTitle className='text-base font-semibold'>Variants</CardTitle>
                                         <CardDescription className='mt-1'>Sizes, weights or colors — each has its own price, stock and SKU.</CardDescription>
                                     </div>
-                                    <Button type='button' variant='outline' size='sm' className='cursor-pointer'
-                                        onClick={() => set('variants', [...form.variants, { key: newKey(), name: '', price: form.sellingPrice, compareAtPrice: '', sku: '', inventoryQty: '0' }])}>
-                                        <PlusIcon /> Add variant
-                                    </Button>
+                                    <div className='flex shrink-0 flex-wrap justify-end gap-2'>
+                                        {attributes.length > 0 && (
+                                            <Button type='button' variant='outline' size='sm' className='cursor-pointer' onClick={() => setGeneratorOpen(true)}>
+                                                <SparklesIcon /> From attributes
+                                            </Button>
+                                        )}
+                                        <Button type='button' variant='outline' size='sm' className='cursor-pointer'
+                                            onClick={() => set('variants', [...form.variants, { key: newKey(), name: '', price: form.sellingPrice, compareAtPrice: '', sku: '', inventoryQty: '0' }])}>
+                                            <PlusIcon /> Add variant
+                                        </Button>
+                                    </div>
                                 </div>
                             </CardHeader>
                             <CardContent>
                                 {errors.variants && <p className='mb-3 text-xs text-destructive'>{errors.variants}</p>}
                                 {!hasVariants ? (
                                     <p className='rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground'>
-                                        No variants — this product is sold as a single item. Add variants for things like 500g / 1kg / 2kg.
+                                        No variants — this product is sold as a single item. Add variants for things like 500g / 1kg / 2kg
+                                        {attributes.length > 0 && <>, or use <span className='font-semibold text-foreground'>From attributes</span> to create them all at once (e.g. 8GB · 128GB, 8GB · 256GB)</>}.
                                     </p>
                                 ) : (
                                     <div className='overflow-x-auto rounded-lg border'>
@@ -418,6 +478,9 @@ export default function ProductFormPage() {
                                     </div>
                                 )}
                                 {isEdit && hasVariants && <p className='mt-2 text-xs text-muted-foreground'>Stock for existing variants is changed from the Inventory tab, so every change is logged.</p>}
+                                <VariantGeneratorDialog open={generatorOpen} onOpenChange={setGeneratorOpen} attributes={attributes}
+                                    existingNames={form.variants.map(v => v.name)} existingCount={form.variants.length}
+                                    onGenerate={names => set('variants', [...form.variants, ...names.map(name => ({ key: newKey(), name, price: form.sellingPrice, compareAtPrice: '', sku: '', inventoryQty: '0' }))])} />
                             </CardContent>
                         </Card>
                     </div>
@@ -642,5 +705,6 @@ function toForm(p: ProductDetail): Form {
         weightKg: s(p.weightKg), packageType: p.packageType, requiresColdChain: p.requiresColdChain, deliveryScope: p.deliveryScope, deliveryPincodes: p.deliveryPincodes,
         images: p.images.map(i => ({ fileId: i.fileId, url: i.url })),
         variants: p.variants.map(v => ({ key: v.id, id: v.id, name: v.name, price: String(v.price), compareAtPrice: s(v.compareAtPrice), sku: v.sku ?? '', inventoryQty: '0', currentQty: v.inventoryQty })),
+        specs: Object.fromEntries((p.specs ?? []).map(x => [x.name, x.value])),
     }
 }

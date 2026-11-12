@@ -46,6 +46,31 @@ interface DemoProduct {
   description: string
 }
 
+/** Specifications (values from Global catalog › Attributes) — filled in on products that don't have any yet */
+const SPECS: Record<string, Record<string, string>> = {
+  'Nova 5G smartphone': { Connectivity: '5G', Warranty: '1 year', Colour: 'Black' },
+  'Nova Lite 4G phone': { RAM: '4GB', Storage: '64GB', Warranty: '1 year', Colour: 'Blue' },
+  'Nova Tab 10.5-inch tablet': { RAM: '6GB', Connectivity: 'Wi-Fi', Warranty: '1 year', Colour: 'Grey' },
+  'Rugged phone case': { 'Pack size': 'Pack of 1', Warranty: '6 months' },
+  'VoltPro 14 thin laptop': { Connectivity: 'USB-C', Warranty: '1 year', Colour: 'Silver' },
+  'VoltPro mechanical keyboard': { Connectivity: 'USB-C', Warranty: '1 year', Colour: 'Black' },
+  'Silent wireless mouse': { Connectivity: 'Bluetooth', Warranty: '1 year', Colour: 'Grey' },
+  'USB-C 7-in-1 hub': { Connectivity: 'USB-C', Warranty: '1 year', Colour: 'Silver' },
+  'Laptop cooling pad': { Connectivity: 'Wired', Warranty: '6 months', Colour: 'Black' },
+  'Nova Buds Pro ANC earbuds': { Connectivity: 'Bluetooth', Warranty: '1 year', Colour: 'White' },
+  'Nova over-ear headphones': { Connectivity: 'Bluetooth', Warranty: '1 year', Colour: 'Black' },
+  'Nova Boom portable speaker': { Connectivity: 'Bluetooth', Warranty: '1 year', Colour: 'Blue' },
+  'Nova soundbar 2.1': { Connectivity: 'Bluetooth', Warranty: '2 years', Colour: 'Black' },
+  'VoltPro 43-inch 4K smart TV': { 'Screen size': '43"', Connectivity: 'Wi-Fi', Warranty: '2 years' },
+  'VoltPro 32-inch HD TV': { 'Screen size': '32"', Connectivity: 'Wi-Fi', Warranty: '1 year' },
+  'Streaming stick 4K': { Connectivity: 'Wi-Fi', Warranty: '1 year', Colour: 'Black' },
+  'Nova Fit smartwatch': { Connectivity: 'Bluetooth', Warranty: '1 year', Colour: 'Black' },
+  '65W GaN fast charger': { Connectivity: 'USB-C', Warranty: '1 year', Colour: 'White' },
+  'Compact mirrorless camera': { Connectivity: 'Wi-Fi', Warranty: '2 years', Colour: 'Black' },
+  '10000mAh power bank': { Connectivity: 'USB-C', Warranty: '6 months', Colour: 'Black' },
+}
+const specsFor = (title: string) => Object.entries(SPECS[title] ?? {}).map(([name, value]) => ({ name, value }))
+
 const PRODUCTS: DemoProduct[] = [
   // Mobiles & tablets
   { title: 'Nova 5G smartphone', category: 'electronics-mobiles-and-tablets', hsn: '8517', image: 'demo-circuithub-01.jpg', brand: 0, price: 15999, mrp: 18999, package: 'BOX', weightKg: 0.4,
@@ -175,7 +200,7 @@ async function add(email: string) {
     const product = await prisma.product.create({
       data: {
         sellerId: seller.id, categoryId, taxClassId, brandId: brands[p.brand]!.id,
-        title: p.title, slug, description: p.description,
+        title: p.title, slug, description: p.description, specs: specsFor(p.title),
         status: p.status ?? 'ACTIVE',
         sellingPrice: hasVariants ? p.variants![0]!.price : p.price,
         compareAtPrice: hasVariants ? null : (p.mrp ?? null),
@@ -226,6 +251,13 @@ async function add(email: string) {
     created++
     console.log(`  + ${p.title}${hasVariants ? ` (${p.variants!.length} variants)` : ''}${ratings.length ? ` · ${ratings.length} reviews` : ''}`)
   }
+  // Products added before specifications existed get them now (only when they have none)
+  let specced = 0
+  for (const p of PRODUCTS) {
+    const r = await prisma.product.updateMany({ where: { sellerId: seller.id, slug: slugify(p.title), specs: { equals: [] } }, data: { specs: specsFor(p.title) } })
+    specced += r.count
+  }
+  if (specced) console.log(`  specifications added to ${specced} existing products`)
   console.log(`\n${seller.name}: added ${created} products (${PRODUCTS.length - created} already existed), brands: ${BRANDS.join(', ')}`)
   if (!reviewers.length) console.log('  (no demo reviewers found — run `npm run db:seed:demo` first to get reviews)')
 }

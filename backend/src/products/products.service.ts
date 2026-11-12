@@ -55,6 +55,14 @@ const detailInclude = {
 type ListRow = Prisma.ProductGetPayload<{ include: typeof listInclude }>;
 type DetailRow = Prisma.ProductGetPayload<{ include: typeof detailInclude }>;
 
+/** One value per specification name; empty values dropped */
+const cleanSpecs = (specs: { name: string; value: string }[] = []) => {
+  const seen = new Set<string>();
+  return specs.filter((s) => s.name && s.value && !seen.has(s.name.toLowerCase()) && seen.add(s.name.toLowerCase())).map((s) => ({ name: s.name, value: s.value }));
+};
+export const specsOf = (v: Prisma.JsonValue): { name: string; value: string }[] =>
+  Array.isArray(v) ? v.filter((x): x is { name: string; value: string } => !!x && typeof x === 'object' && 'name' in x && 'value' in x) : [];
+
 const num = (d: Prisma.Decimal | null | undefined) => (d == null ? null : Number(d));
 
 /** Platform moderation shown to the seller (Global catalog › Products) */
@@ -144,6 +152,7 @@ export class ProductsService {
     const cost = num(p.costPerItem);
     return {
       ...p,
+      specs: specsOf(p.specs),
       sellingPrice: selling,
       compareAtPrice: num(p.compareAtPrice),
       costPerItem: cost,
@@ -161,7 +170,7 @@ export class ProductsService {
 
   async meta(actorId: string) {
     const seller = await this.sellerOf(actorId);
-    const [tops, taxClasses, brands] = await Promise.all([
+    const [tops, taxClasses, brands, attributes] = await Promise.all([
       // Only the seller's own categories — each with its active sub-categories
       this.prisma.productCategory.findMany({
         where: { id: { in: seller.categoryIds }, parentId: null, isActive: true },
@@ -173,6 +182,12 @@ export class ProductsService {
       }),
       this.prisma.taxClass.findMany({ where: { isActive: true }, orderBy: [{ gstRatePercent: 'asc' }, { hsnCode: 'asc' }] }),
       this.prisma.brand.findMany({ where: { sellerId: seller.id, isActive: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
+      // Global catalog › Attributes: for every category (categoryId null) or one of the seller's top categories
+      this.prisma.categoryAttribute.findMany({
+        where: { isActive: true, OR: [{ categoryId: null }, { categoryId: { in: seller.categoryIds } }] },
+        orderBy: [{ categoryId: { sort: 'desc', nulls: 'last' } }, { name: 'asc' }],
+        select: { id: true, name: true, values: true, categoryId: true },
+      }),
     ]);
     const categories = tops;
     return {
@@ -180,6 +195,7 @@ export class ProductsService {
         categories,
         taxClasses: taxClasses.map((t) => ({ id: t.id, hsnCode: t.hsnCode, description: t.description, gstRatePercent: Number(t.gstRatePercent) })),
         brands,
+        attributes,
         packageTypes: PACKAGE_TYPES,
         deliveryScopes: DELIVERY_SCOPES,
         adjustmentReasons: ADJUSTMENT_REASONS,
@@ -332,6 +348,7 @@ export class ProductsService {
           slug,
           seoTitle: dto.seoTitle || null,
           seoDescription: dto.seoDescription || null,
+          specs: cleanSpecs(dto.specs),
           status: dto.status ?? 'ACTIVE',
           sellingPrice: dto.sellingPrice,
           compareAtPrice: dto.compareAtPrice ?? null,
@@ -400,6 +417,7 @@ export class ProductsService {
           ...(dto.slug && { slug: dto.slug }),
           ...(dto.seoTitle !== undefined && { seoTitle: dto.seoTitle || null }),
           ...(dto.seoDescription !== undefined && { seoDescription: dto.seoDescription || null }),
+          ...(dto.specs && { specs: cleanSpecs(dto.specs) }),
           ...(dto.status && { status: dto.status }),
           ...(dto.sellingPrice !== undefined && { sellingPrice: dto.sellingPrice }),
           ...('compareAtPrice' in dto && { compareAtPrice: dto.compareAtPrice ?? null }),

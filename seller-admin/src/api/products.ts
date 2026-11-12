@@ -10,10 +10,15 @@ export interface CatalogMeta {
     categories: { id: string; name: string; sellerCategory: string | null; requiresFssai: boolean; children: { id: string; name: string }[] }[]
     taxClasses: { id: string; hsnCode: string; description: string; gstRatePercent: number }[]
     brands: { id: string; name: string }[]
+    /** Global catalog › Attributes for the seller's categories (categoryId null = every category) */
+    attributes: CatalogAttribute[]
     packageTypes: { value: PackageType; label: string }[]
     deliveryScopes: { value: DeliveryScope; label: string; description: string }[]
     adjustmentReasons: { value: AdjustmentReason; label: string; manual: boolean }[]
 }
+
+export interface CatalogAttribute { id: string; name: string; values: string[]; categoryId: string | null }
+export interface ProductSpec { name: string; value: string }
 
 export interface ProductListItem {
     id: string
@@ -67,6 +72,7 @@ export interface ProductDetail {
     deliveryPincodes: string[]
     category: { id: string; name: string; parent: { id: string; name: string } | null }
     brand: { id: string; name: string } | null
+    specs: ProductSpec[]
     taxClass: { id: string; hsnCode: string; description: string; gstRatePercent: number }
     variants: ProductVariant[]
     images: { id: string; fileId: string; url: string; isPrimary: boolean; sortOrder: number }[]
@@ -94,6 +100,7 @@ export interface ProductPayload {
     description?: string
     categoryId: string
     brandName?: string
+    specs?: ProductSpec[]
     slug?: string
     seoTitle?: string
     seoDescription?: string

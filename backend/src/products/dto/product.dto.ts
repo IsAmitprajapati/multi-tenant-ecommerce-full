@@ -33,6 +33,14 @@ export class ProductVariantDto {
   inventoryQty?: number;
 }
 
+export class ProductSpecDto {
+  @Transform(trim) @IsString() @MinLength(1) @MaxLength(60)
+  name: string;
+
+  @Transform(trim) @IsString() @MinLength(1) @MaxLength(120)
+  value: string;
+}
+
 export class ProductImageDto {
   /** ImageKit fileId (uploaded directly from the browser) */
   @IsString()
@@ -109,6 +117,11 @@ export class CreateProductDto {
   @IsOptional() @IsArray() @ArrayMaxSize(50)
   @ValidateNested({ each: true }) @Type(() => ProductVariantDto)
   variants?: ProductVariantDto[];
+
+  /** Specifications (from Global catalog › Attributes), shown on the product page */
+  @IsOptional() @IsArray() @ArrayMaxSize(30)
+  @ValidateNested({ each: true }) @Type(() => ProductSpecDto)
+  specs?: ProductSpecDto[];
 
   /** In display order — the first image is the primary one */
   @IsOptional() @IsArray() @ArrayMaxSize(10, { message: 'Up to 10 images per product' })

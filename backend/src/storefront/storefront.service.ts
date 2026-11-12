@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { ImageKitStorageService } from '../sellers/imagekit-storage.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import type { HomeProductSource } from '../generated/prisma/enums.js';
+import { specsOf } from '../products/products.service.js';
 import {
   CreateBannerDto, CreateSectionDto, ProductPickerQueryDto, PromoCardDto, StorefrontSettingsDto, UpdateBannerDto, UpdateSectionDto,
 } from './dto/storefront.dto.js';
@@ -543,6 +544,8 @@ export class StorefrontService {
         packageType: p.packageType,
         requiresColdChain: p.requiresColdChain,
       },
+      /** Seller-picked specifications (Global catalog › Attributes) */
+      attributes: specsOf(p.specs),
       delivery: { scope: p.deliveryScope, pincodes: p.deliveryScope === 'SPECIFIC_PINCODES' ? p.deliveryPincodes : [] },
       related: related.map(toCard),
     };

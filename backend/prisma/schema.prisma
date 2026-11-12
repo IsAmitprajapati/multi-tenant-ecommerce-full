@@ -422,6 +422,8 @@ model Product {
   seoTitle       String?       @map("seo_title")
   seoDescription String?       @map("seo_description")
   status         ProductStatus @default(ACTIVE)
+  /// Specifications picked from Global catalog › Attributes: [{ name, value }] — shown on the product page
+  specs          Json          @default("[]")
 
   sellingPrice   Decimal  @map("selling_price") @db.Decimal(12, 2)
   compareAtPrice Decimal? @map("compare_at_price") @db.Decimal(12, 2)

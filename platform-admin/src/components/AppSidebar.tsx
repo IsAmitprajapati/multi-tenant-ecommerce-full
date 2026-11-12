@@ -1,5 +1,5 @@
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from './ui/sidebar'
-import { BarChart3Icon, LayoutDashboardIcon, LayoutGridIcon, LayoutTemplateIcon, LogOut, MegaphoneIcon, Settings, ShieldCheckIcon, ShoppingBagIcon, Store, Truck, Users } from 'lucide-react'
+import { BarChart3Icon, LayoutDashboardIcon, LifeBuoyIcon, WalletIcon, LayoutGridIcon, LayoutTemplateIcon, LogOut, MegaphoneIcon, Settings, ShieldCheckIcon, ShoppingBagIcon, Store, Truck, Users } from 'lucide-react'
 import PlatfromLogo from '@/assets/platform-logo.png'
 import { useLocation, useNavigate } from 'react-router'
 import { cn } from '@/lib/utils'
@@ -19,13 +19,13 @@ const AppSidebar = () => {
     const SIDEBAR_NAV: { href: string; label: string; Icon: typeof Store; module: PermissionModule }[] = [
         { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboardIcon, module: "DASHBOARD" },
         { href: "/dashboard/sellers", label: "Sellers", Icon: Store, module: "SELLERS" },
-        { href: "/dashboard/commision-payouts", label: "Commision & Payouts", Icon: Store, module: "COMMISSION_PAYOUTS" },
+        { href: "/dashboard/commission-payouts", label: "Commission & Payouts", Icon: WalletIcon, module: "COMMISSION_PAYOUTS" },
         { href: "/dashboard/global-catalog", label: "Global Catalog", Icon: LayoutGridIcon, module: "GLOBAL_CATALOG" },
         { href: "/dashboard/storefront", label: "Storefront", Icon: LayoutTemplateIcon, module: "STOREFRONT" },
         { href: "/dashboard/delivery-network", label: "Delivery Network", Icon: Truck, module: "DELIVERY_NETWORK" },
         { href: "/dashboard/customers", label: "Customers", Icon: Users, module: "CUSTOMERS" },
         { href: "/dashboard/orders", label: "Orders", Icon: ShoppingBagIcon, module: "ORDERS" },
-        { href: "/dashboard/support", label: "Supports", Icon: ShoppingBagIcon, module: "SUPPORT" },
+        { href: "/dashboard/support", label: "Support", Icon: LifeBuoyIcon, module: "SUPPORT" },
         { href: "/dashboard/marketing", label: "Marketing", Icon: MegaphoneIcon, module: "MARKETING" },
         { href: "/dashboard/reports", label: "Reports", Icon: BarChart3Icon, module: "REPORTS" },
         { href: "/dashboard/users-permissions", label: "Users & Permissions", Icon: ShieldCheckIcon, module: "USERS_PERMISSIONS" },

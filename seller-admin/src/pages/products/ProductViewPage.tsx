@@ -189,6 +189,7 @@ export default function ProductViewPage() {
                             <Row label='Description'><span className='block text-left font-normal whitespace-pre-line sm:max-w-md'>{p.description}</span></Row>
                             <Row label='Category'>{p.category.parent ? `${p.category.parent.name} › ` : ''}{p.category.name}</Row>
                             <Row label='Brand'>{p.brand?.name ?? <span className='font-normal text-muted-foreground'>No brand</span>}</Row>
+                            {(p.specs ?? []).map(s => <Row key={s.name} label={s.name}>{s.value}</Row>)}
                         </dl>
                     </Section>
 

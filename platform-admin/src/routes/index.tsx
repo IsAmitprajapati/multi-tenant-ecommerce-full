@@ -8,7 +8,6 @@ import LoginPage from "@/pages/auth/LoginPage";
 import ResetPassword from "@/pages/auth/ResetPassword";
 import Verify2AaOTP from "@/pages/auth/Verify2FaOtp";
 import VerifyForgotOtpPage from "@/pages/auth/VerifyForgotOtp";
-import CommisionPayoutPages from "@/pages/dashboard/commision-payouts/CommisionPayoutPages";
 import DashboardPage from "@/pages/dashboard/DashboardPage";
 import SellersPage from "@/pages/sellers/SellersPage";
 import OnboardSellerPage from "@/pages/sellers/OnboardSellerPage";
@@ -28,7 +27,20 @@ import RolesPage from "@/pages/user-permissions/RolesPage";
 import RoleFormPage from "@/pages/user-permissions/RoleFormPage";
 import UpdateUserPage from "@/pages/user-permissions/UpdateUserPage";
 import UsersPage from "@/pages/user-permissions/UsersPage";
+import ComingSoonPage, { NotFoundPage } from "@/pages/ComingSoonPage";
+import type { PermissionModule } from "@/lib/permissions";
 import { Navigate, Route, Routes } from "react-router";
+
+/** Platform modules not built yet — each gated by its permission so every sidebar link opens a page */
+const MODULE_PAGES: { path: string; module: PermissionModule; title: string; description: string }[] = [
+    { path: "commission-payouts", module: "COMMISSION_PAYOUTS", title: "Commission & payouts", description: "Commission rules, seller settlements and payouts." },
+    { path: "delivery-network", module: "DELIVERY_NETWORK", title: "Delivery network", description: "Delivery agents, zones and agent KYC." },
+    { path: "orders", module: "ORDERS", title: "Orders", description: "Every order across the marketplace — cancellations and refunds." },
+    { path: "support", module: "SUPPORT", title: "Support", description: "Tickets from customers and sellers, with the full conversation." },
+    { path: "marketing", module: "MARKETING", title: "Marketing", description: "Platform banners, campaigns and their performance." },
+    { path: "reports", module: "REPORTS", title: "Reports", description: "Sales, sellers, customers and delivery analytics with exports." },
+    { path: "settings", module: "SETTINGS", title: "Settings", description: "Platform configuration." },
+]
 
 export default function Routers() {
     return (
@@ -55,7 +67,8 @@ export default function Routers() {
                             <Route path=":sellerId/edit" element={<SellerEditPage />} />
                         </Route>
                     </Route>
-                    <Route path="commision-payouts" element={<CommisionPayoutPages />} />
+                    {/* old misspelt address */}
+                    <Route path="commision-payouts" element={<Navigate to="/dashboard/commission-payouts" replace />} />
                     <Route path="my-account" element={<ProfileDetailsPage />} />
 
                     {/***Global catalog */}
@@ -99,10 +112,17 @@ export default function Routers() {
                             <Route path="user/edit" element={<UpdateUserPage />} />
                         </Route>
                     </Route>
+
+                    {MODULE_PAGES.map(p => (
+                        <Route key={p.path} path={p.path}
+                            element={<PermissionRoute module={p.module}><ComingSoonPage title={p.title} description={p.description} /></PermissionRoute>} />
+                    ))}
+                    <Route path="*" element={<NotFoundPage />} />
                 </Route>
             </Route>
 
-
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
     )
 }

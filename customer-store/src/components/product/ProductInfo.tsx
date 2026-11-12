@@ -23,6 +23,7 @@ export function ProductDetailsCard({ product }: { product: ProductDetail }) {
   const specs: [string, string][] = [
     ['Category', product.parentCategory ? `${product.parentCategory.name} › ${product.category.name}` : product.category.name],
     ...(product.brand ? [['Brand', product.brand] as [string, string]] : []),
+    ...(product.attributes ?? []).map(a => [a.name, a.value] as [string, string]),
     ['Sold by', product.seller.name],
     ...(product.specs.weightKg ? [['Weight', product.specs.weightKg < 1 ? `${Math.round(product.specs.weightKg * 1000)} g` : `${product.specs.weightKg} kg`] as [string, string]] : []),
     ['Packaging', PACKAGE[product.specs.packageType] ?? product.specs.packageType],
@@ -35,7 +36,7 @@ export function ProductDetailsCard({ product }: { product: ProductDetail }) {
       <Section title='Description' open first>
         <p className='text-sm leading-[22px] whitespace-pre-line text-n-600'>{product.description || 'The seller hasn’t added a description yet.'}</p>
       </Section>
-      <Section title='Specifications'>
+      <Section title='Specifications' open={(product.attributes?.length ?? 0) > 0}>
         <dl>
           {specs.map(([k, v]) => (
             <div key={k} className='flex gap-4 border-b border-n-200 py-2 text-[13px] last:border-0'>

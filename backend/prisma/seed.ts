@@ -131,6 +131,35 @@ const CATEGORY_TREE: { key: string; name: string; commission: number; requiresFs
 ]
 
 /***GST tax classes (verify rates with your CA before going live) */
+/**
+ * Global catalog › Attributes. Sellers use them on the product form:
+ *  - Specifications: pick one value per attribute (shown on the product page)
+ *  - Variants: pick several values of one or two attributes to generate variant rows (e.g. 8GB · 256GB)
+ * category: top-level category key, or null for every category. Only created if missing.
+ */
+const ATTRIBUTES: { name: string; category: string | null; values: string[] }[] = [
+    { name: 'Colour', category: null, values: ['Black', 'White', 'Grey', 'Silver', 'Blue', 'Red', 'Green', 'Yellow', 'Pink', 'Brown', 'Gold', 'Multicolour'] },
+    { name: 'Pack size', category: null, values: ['Pack of 1', 'Pack of 2', 'Pack of 3', 'Pack of 4', 'Pack of 6', 'Pack of 12'] },
+    { name: 'Weight', category: 'grocery', values: ['100g', '250g', '500g', '1kg', '2kg', '5kg', '10kg'] },
+    { name: 'Volume', category: 'grocery', values: ['200ml', '500ml', '1L', '2L', '5L'] },
+    { name: 'Diet', category: 'grocery', values: ['Veg', 'Non-veg', 'Vegan', 'Jain'] },
+    { name: 'Size', category: 'fashion', values: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'] },
+    { name: 'Footwear size', category: 'fashion', values: ['UK 5', 'UK 6', 'UK 7', 'UK 8', 'UK 9', 'UK 10', 'UK 11'] },
+    { name: 'Fabric', category: 'fashion', values: ['Cotton', 'Polyester', 'Linen', 'Denim', 'Silk', 'Wool', 'Rayon'] },
+    { name: 'Fit', category: 'fashion', values: ['Slim', 'Regular', 'Relaxed', 'Oversized'] },
+    { name: 'RAM', category: 'electronics', values: ['4GB', '6GB', '8GB', '12GB', '16GB', '32GB'] },
+    { name: 'Storage', category: 'electronics', values: ['64GB', '128GB', '256GB', '512GB', '1TB', '2TB'] },
+    { name: 'Screen size', category: 'electronics', values: ['32"', '43"', '50"', '55"', '65"'] },
+    { name: 'Connectivity', category: 'electronics', values: ['Wired', 'Bluetooth', 'Wi-Fi', 'USB-C', '5G'] },
+    { name: 'Warranty', category: 'electronics', values: ['6 months', '1 year', '2 years', '3 years'] },
+    { name: 'Material', category: 'home', values: ['Stainless steel', 'Aluminium', 'Cast iron', 'Wood', 'Glass', 'Ceramic', 'Plastic'] },
+    { name: 'Capacity', category: 'home', values: ['500ml', '1L', '2L', '3L', '5L'] },
+    { name: 'Set of', category: 'home', values: ['1 piece', '2 pieces', '3 pieces', '4 pieces', '6 pieces'] },
+    { name: 'Skin type', category: 'beauty', values: ['All skin types', 'Dry', 'Oily', 'Combination', 'Sensitive'] },
+    { name: 'Volume', category: 'beauty', values: ['15ml', '30ml', '50ml', '100ml', '200ml'] },
+    { name: 'Shade', category: 'beauty', values: ['Fair', 'Light', 'Medium', 'Tan', 'Deep'] },
+]
+
 const TAX_CLASSES: { hsnCode: string; description: string; rate: number }[] = [
     { hsnCode: '0803', description: 'Fresh fruits', rate: 0 },
     { hsnCode: '0709', description: 'Fresh vegetables', rate: 0 },
@@ -173,7 +202,16 @@ async function seedCatalog() {
             create: { hsnCode: t.hsnCode, description: t.description, gstRatePercent: t.rate },
         })
     }
-    console.log(`  catalog: ${CATEGORY_TREE.length} top categories, ${TAX_CLASSES.length} tax classes`)
+    let added = 0
+    for (const a of ATTRIBUTES) {
+        const categoryId = a.category ? (await prisma.productCategory.findUnique({ where: { slug: a.category }, select: { id: true } }))?.id ?? null : null
+        if (a.category && !categoryId) continue
+        const exists = await prisma.categoryAttribute.findFirst({ where: { name: { equals: a.name, mode: 'insensitive' }, categoryId }, select: { id: true } })
+        if (exists) continue
+        await prisma.categoryAttribute.create({ data: { name: a.name, values: a.values, categoryId } })
+        added++
+    }
+    console.log(`  catalog: ${CATEGORY_TREE.length} top categories, ${TAX_CLASSES.length} tax classes, ${added} new attributes`)
 }
 
 async function main() {
